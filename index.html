@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>ตลาดสดแม่โจ้ · แอปเจ้าของตลาด</title>
+<style>
+  :root{
+    --bg:#EEF1E9; --paper:#F7F9F3; --surface:#FFFFFF; --surface-2:#F2F6EC; --surface-3:#E8EFE0;
+    --border:#DAE3CF; --border-strong:#C4D2B4; --text:#16241B; --muted:#5C6D5D; --faint:#8B9C8B;
+    --brand:#15693E; --brand-deep:#0E3B24; --brand-600:#1C7A48; --leaf:#57AF44; --leaf-soft:#E2F0D8;
+    --gold:#D79A1F; --gold-soft:#F6E7BE; --ok:#2E9E5B; --ok-soft:#DCF0E2; --warn:#D9932A; --warn-soft:#F8E9CE;
+    --bad:#CF4A34; --bad-soft:#F7DDD6;
+    --shadow:0 1px 2px rgba(20,50,30,.05), 0 8px 22px -14px rgba(20,50,30,.22);
+    --shadow-lg:0 24px 60px -22px rgba(14,40,25,.45);
+    --r:14px; --r-sm:10px; --r-lg:20px;
+    --app-w:460px;
+    --ff:"Leelawadee UI","Noto Sans Thai","Sukhumvit Set","IBM Plex Sans Thai","Thonburi","Segoe UI",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0C1712; --paper:#0F1D15; --surface:#13221A; --surface-2:#182A20; --surface-3:#1E3327;
+      --border:#26392E; --border-strong:#33503C; --text:#E9F1E6; --muted:#96A996; --faint:#6E8270;
+      --brand:#43A96D; --brand-deep:#0A2417; --brand-600:#3C9E64; --leaf:#78CB63; --leaf-soft:#1D3524;
+      --gold:#E6B94E; --gold-soft:#3A2F14; --ok:#54BE7C; --ok-soft:#183527; --warn:#E5AB48; --warn-soft:#382C13;
+      --bad:#E8715A; --bad-soft:#3A1F19;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 26px -16px rgba(0,0,0,.7);
+      --shadow-lg:0 30px 70px -22px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#EEF1E9; --paper:#F7F9F3; --surface:#FFFFFF; --surface-2:#F2F6EC; --surface-3:#E8EFE0;
+    --border:#DAE3CF; --border-strong:#C4D2B4; --text:#16241B; --muted:#5C6D5D; --faint:#8B9C8B;
+    --brand:#15693E; --brand-deep:#0E3B24; --brand-600:#1C7A48; --leaf:#57AF44; --leaf-soft:#E2F0D8;
+    --gold:#D79A1F; --gold-soft:#F6E7BE; --ok:#2E9E5B; --ok-soft:#DCF0E2; --warn:#D9932A; --warn-soft:#F8E9CE;
+    --bad:#CF4A34; --bad-soft:#F7DDD6;
+    --shadow:0 1px 2px rgba(20,50,30,.05), 0 8px 22px -14px rgba(20,50,30,.22);
+    --shadow-lg:0 24px 60px -22px rgba(14,40,25,.45);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0C1712; --paper:#0F1D15; --surface:#13221A; --surface-2:#182A20; --surface-3:#1E3327;
+    --border:#26392E; --border-strong:#33503C; --text:#E9F1E6; --muted:#96A996; --faint:#6E8270;
+    --brand:#43A96D; --brand-deep:#0A2417; --brand-600:#3C9E64; --leaf:#78CB63; --leaf-soft:#1D3524;
+    --gold:#E6B94E; --gold-soft:#3A2F14; --ok:#54BE7C; --ok-soft:#183527; --warn:#E5AB48; --warn-soft:#382C13;
+    --bad:#E8715A; --bad-soft:#3A1F19;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 26px -16px rgba(0,0,0,.7);
+    --shadow-lg:0 30px 70px -22px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--ff);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.5;
+    background:#20281f;display:flex;justify-content:center;min-height:100vh}
+  @media (prefers-color-scheme:light){body{background:#c9d4c0}}
+  :root[data-theme="light"] body{background:#c9d4c0}
+  :root[data-theme="dark"] body{background:#05100a}
+  .num{font-variant-numeric:tabular-nums}
+  button{font-family:inherit;cursor:pointer;color:inherit}
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2.5px solid var(--gold);outline-offset:2px;border-radius:4px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  .ico{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-.22em;flex:none}
+
+  /* ===== PHONE SHELL ===== */
+  .app{width:100%;max-width:var(--app-w);min-height:100vh;background:var(--bg);position:relative;
+    display:flex;flex-direction:column;overflow:hidden;
+    background-image:radial-gradient(600px 320px at 100% -6%, color-mix(in srgb,var(--leaf) 14%,transparent), transparent 62%)}
+  @media (min-width:520px){
+    .app{min-height:0;height:92vh;margin:4vh 0;border-radius:34px;box-shadow:var(--shadow-lg);border:1px solid var(--border)}
+  }
+
+  /* ===== APP BAR ===== */
+  .appbar{flex:none;position:sticky;top:0;z-index:30;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;
+    background:linear-gradient(160deg,var(--brand-600),var(--brand-deep));color:#fff}
+  .appbar.plain{background:color-mix(in srgb,var(--paper) 88%,transparent);color:var(--text);
+    backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+  .ab-row{display:flex;align-items:center;gap:12px}
+  .ab-av{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;flex:none;
+    background:rgba(255,255,255,.16);color:#fff}
+  .appbar.plain .ab-av{background:linear-gradient(150deg,var(--leaf),var(--brand));}
+  .ab-av .ico{width:22px;height:22px}
+  .ab-hi{font-size:12px;opacity:.85}
+  .appbar.plain .ab-hi{color:var(--muted);opacity:1}
+  .ab-name{font-size:18px;font-weight:800;letter-spacing:-.3px;line-height:1.15}
+  .ab-actions{margin-left:auto;display:flex;gap:8px}
+  .ab-btn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;position:relative;
+    background:rgba(255,255,255,.16);border:0;color:#fff}
+  .appbar.plain .ab-btn{background:var(--surface);border:1px solid var(--border);color:var(--text)}
+  .ab-btn .ico{width:19px;height:19px}
+  .ab-btn .ndot{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--gold);border:2px solid var(--brand-deep)}
+  .ab-sub{margin-top:14px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.13);
+    border-radius:14px;padding:11px 14px;font-size:12.5px}
+  .ab-sub .ico{width:18px;height:18px;color:var(--gold-soft)}
+  .ab-sub b{font-weight:800}
+  .ab-sub .go{margin-left:auto;display:inline-flex;align-items:center;gap:3px;font-weight:800;font-size:12px;background:#fff;color:var(--brand-deep);padding:6px 11px;border-radius:20px}
+  .ab-sub .go .ico{width:13px;height:13px;color:var(--brand-deep)}
+
+  .ab-title{display:flex;align-items:center;gap:10px}
+  .ab-title h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.3px}
+  .ab-title .back{width:38px;height:38px;border-radius:11px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center}
+  .ab-title .back .ico{width:18px;height:18px;transform:scaleX(-1)}
+  .ab-title .spacer{margin-left:auto}
+
+  /* ===== CONTENT ===== */
+  .content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+    padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
+  .view{display:none;animation:fade .32s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .sec-title{display:flex;align-items:center;gap:9px;margin:22px 2px 12px;font-size:15px;font-weight:800}
+  .sec-title:first-child{margin-top:6px}
+  .sec-title .ico{width:18px;height:18px;color:var(--brand)}
+  .sec-title .cnt{font-size:10.5px;font-weight:800;color:var(--gold);background:var(--gold-soft);padding:2px 9px;border-radius:20px}
+  .sec-title .link{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--brand);display:inline-flex;align-items:center;gap:3px}
+  .sec-title .link .ico{width:14px;height:14px;color:var(--brand)}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .kpi .kt{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:8px;font-weight:600}
+  .kpi .ki{width:30px;height:30px;border-radius:9px;display:grid;place-items:center}
+  .kpi .ki .ico{width:16px;height:16px}
+  .kpi .kv{font-size:26px;font-weight:800;letter-spacing:-1px;margin:9px 0 3px}
+  .kpi .kd{font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+  .kpi .kd .ico{width:13px;height:13px}
+  .kd.up{color:var(--ok)} .kd.down{color:var(--bad)} .kd.warn{color:var(--warn)}
+  .kpi .kbar{position:absolute;left:0;bottom:0;height:4px;width:100%;background:var(--surface-3)}
+  .kpi .kbar i{display:block;height:100%;background:linear-gradient(90deg,var(--leaf),var(--brand))}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+
+  /* ===== APPROVALS ===== */
+  .app-list{display:flex;flex-direction:column;gap:11px}
+  .app-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;transition:.25s;overflow:hidden}
+  .app-card.hl{border-color:color-mix(in srgb,var(--gold) 45%,var(--border));background:linear-gradient(180deg,color-mix(in srgb,var(--gold-soft) 35%,var(--surface)),var(--surface))}
+  .app-card.removing{opacity:0;transform:translateX(26px);max-height:0;padding-top:0;padding-bottom:0;margin:0;border-width:0}
+  .ac-top{display:flex;align-items:flex-start;gap:12px}
+  .app-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none}
+  .app-ic .ico{width:20px;height:20px}
+  .ac-main{min-width:0;flex:1}
+  .app-tag{font-size:10px;font-weight:800;letter-spacing:.3px;display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;margin-bottom:4px}
+  .app-tag .ico{width:11px;height:11px}
+  .app-t{font-size:14.5px;font-weight:800;line-height:1.3}
+  .app-s{font-size:12px;color:var(--muted);margin-top:2px}
+  .app-amt{text-align:right;flex:none}
+  .app-amt b{font-size:15px;font-weight:800;white-space:nowrap}
+  .app-amt span{font-size:10.5px;color:var(--muted);display:block}
+  .app-btns{display:flex;gap:9px;margin-top:12px}
+  .mini{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:11px;padding:11px;font-size:13px;font-weight:800;border:1px solid var(--border);background:var(--surface)}
+  .mini .ico{width:15px;height:15px}
+  .mini.approve{background:var(--brand);color:#fff;border-color:transparent}
+  .mini.reject{color:var(--bad);background:var(--bad-soft);border-color:transparent;flex:0 0 auto;padding:11px 15px}
+  .mini:active{transform:scale(.97)}
+  .app-empty{display:none;flex-direction:column;align-items:center;gap:8px;padding:34px 16px;text-align:center;color:var(--muted)}
+  .app-empty .ico{width:42px;height:42px;color:var(--ok)}
+  .app-empty.show{display:flex}
+
+  /* charts */
+  .bars{display:flex;align-items:flex-end;gap:8px;height:150px;padding-top:14px}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end}
+  .bar .col{width:100%;max-width:26px;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--leaf),var(--brand));position:relative;height:4px;transition:height .9s cubic-bezier(.2,.8,.2,1)}
+  .bar .bl{font-size:10.5px;color:var(--muted);font-weight:700}
+  .bar .col .tip{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:800;color:var(--text);white-space:nowrap;opacity:0}
+  .bar .col:active .tip,.bar:hover .col .tip{opacity:1}
+  .donut-wrap{display:flex;align-items:center;gap:14px}
+  .donut{width:118px;height:118px;flex:none}
+  .cat-list{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+  .cat-row{display:flex;align-items:center;gap:9px;font-size:12.5px}
+  .cat-row i{width:10px;height:10px;border-radius:3px;flex:none}
+  .cat-row .cv{margin-left:auto;font-weight:800}
+
+  /* vendor list cards */
+  .vlist{display:flex;flex-direction:column;gap:10px}
+  .vrow{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 13px}
+  .vrow .va{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none}
+  .vrow .va .ico{width:21px;height:21px}
+  .vrow .vmain{min-width:0;flex:1}
+  .vrow .vn{font-size:13.5px;font-weight:800;line-height:1.25}
+  .vrow .vm{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+  .zone-tag{font-weight:800;font-variant-numeric:tabular-nums;background:var(--surface-2);padding:1px 7px;border-radius:6px;border:1px solid var(--border)}
+  .vrow .vend{text-align:right;flex:none}
+  .vrow .vsale{font-size:13.5px;font-weight:800}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.ok{color:var(--ok);background:var(--ok-soft)} .pill.warn{color:var(--warn);background:var(--warn-soft)} .pill.bad{color:var(--bad);background:var(--bad-soft)}
+  .rankbadge{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:800;flex:none;background:var(--surface-2);color:var(--muted)}
+  .rankbadge.gold{background:var(--gold-soft);color:var(--gold)}
+
+  /* search + chips */
+  .searchbar{display:flex;align-items:center;gap:9px;height:44px;padding:0 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13.5px;margin-bottom:12px}
+  .searchbar .ico{width:18px;height:18px;color:var(--faint)}
+  .searchbar input{border:0;background:transparent;outline:0;flex:1;color:var(--text);font-family:inherit;font-size:13.5px}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;font-size:12.5px;font-weight:700;padding:8px 15px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted)}
+  .chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+  /* map */
+  .maplegend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .maplegend span{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);font-weight:600}
+  .maplegend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+  .mapscroll{overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+  .map svg{display:block;min-width:540px;width:100%;height:auto}
+  .maphint{font-size:11.5px;color:var(--faint);text-align:center;margin-top:2px}
+  .stallcell{cursor:pointer}
+  .map-detail{margin-top:14px;display:flex;align-items:center;gap:12px;background:var(--surface-2);border:1px dashed var(--border-strong);border-radius:var(--r);padding:13px}
+  .map-detail .md-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--leaf-soft);color:var(--brand);flex:none}
+  .map-detail .md-ic .ico{width:21px;height:21px}
+  .map-detail .md-t{font-size:13.5px;font-weight:800}
+  .map-detail .md-s{font-size:11.5px;color:var(--muted)}
+  .map-detail .md-status{margin-left:auto;flex:none}
+
+  /* account / more */
+  .profcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px}
+  .profcover{height:74px;background:linear-gradient(120deg,var(--leaf),var(--brand-deep));position:relative}
+  .profcover .pat{position:absolute;inset:0;opacity:.3;background:radial-gradient(circle at 18% 60%, rgba(255,255,255,.5) 0 2px, transparent 3px) 0 0/20px 20px}
+  .profcard .pav{width:70px;height:70px;border-radius:19px;margin:-38px 0 0 18px;border:4px solid var(--surface);display:grid;place-items:center;color:#fff;background:linear-gradient(150deg,var(--leaf),var(--brand));position:relative}
+  .profcard .pav .ico{width:32px;height:32px}
+  .profbody{padding:6px 18px 18px}
+  .profbody h3{margin:6px 0 2px;font-size:18px}
+  .profbody .pmeta{font-size:12.5px;color:var(--muted)}
+  .statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:var(--r);overflow:hidden;margin-top:14px}
+  .statrow .st{background:var(--surface);padding:12px 6px;text-align:center}
+  .statrow .st b{display:block;font-size:17px;font-weight:800;color:var(--brand)}
+  .statrow .st span{font-size:10.5px;color:var(--muted)}
+  .menu{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  .mitem{display:flex;align-items:center;gap:13px;padding:14px 15px;border-bottom:1px solid var(--border);font-size:13.5px;font-weight:600;width:100%;background:transparent;border-left:0;border-right:0;border-top:0;text-align:left}
+  .mitem:last-child{border-bottom:0}
+  .mitem .mi{width:34px;height:34px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;color:var(--brand)}
+  .mitem .mi .ico{width:17px;height:17px}
+  .mitem .chev{margin-left:auto;color:var(--faint)}
+  .mitem .chev .ico{width:16px;height:16px}
+  .mitem .mtog{margin-left:auto;font-size:11px;font-weight:800;color:var(--muted)}
+
+  /* ===== BOTTOM NAV ===== */
+  .tabbar{position:absolute;bottom:0;left:0;right:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);
+    background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);
+    border-top:1px solid var(--border);padding:8px 4px calc(8px + env(safe-area-inset-bottom))}
+  .tab{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:var(--faint);font-size:10px;font-weight:700;position:relative}
+  .tab .ti{width:24px;height:24px;transition:.16s}
+  .tab.on{color:var(--brand)}
+  .tab.on .ti{transform:translateY(-1px)}
+  .tab .tbadge{position:absolute;top:2px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;border-radius:20px;background:var(--gold);color:#3a2a05;font-size:9.5px;font-weight:800;display:grid;place-items:center}
+
+  /* ===== MODAL ===== */
+  .modal-back{position:absolute;inset:0;background:rgba(10,25,16,.55);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;z-index:100;animation:fade .2s ease}
+  @media (min-width:520px){.modal-back{align-items:center}}
+  .modal-back.show{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:22px 22px 0 0;width:100%;box-shadow:var(--shadow-lg);overflow:hidden;animation:up .28s cubic-bezier(.2,.9,.3,1.1)}
+  @media (min-width:520px){.modal{border-radius:20px;max-width:380px;margin:0 16px}}
+  @keyframes up{from{opacity:.4;transform:translateY(40px)}to{opacity:1;transform:none}}
+  .modal-grab{width:38px;height:4px;border-radius:4px;background:var(--border-strong);margin:9px auto 2px}
+  .modal-top{padding:14px 20px 6px;display:flex;gap:13px;align-items:flex-start}
+  .modal-ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;flex:none;background:var(--leaf-soft);color:var(--brand)}
+  .modal-ic.danger{background:var(--bad-soft);color:var(--bad)}
+  .modal-ic .ico{width:23px;height:23px}
+  .modal h3{margin:0 0 3px;font-size:17px}
+  .modal p{margin:0;font-size:13px;color:var(--muted)}
+  .modal-body{padding:12px 20px 4px}
+  .modal-summary{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;font-size:13px;display:flex;flex-direction:column;gap:7px}
+  .modal-summary .r{display:flex;justify-content:space-between;gap:12px}
+  .modal-summary .r span{color:var(--muted);flex:none} .modal-summary .r b{font-weight:800;text-align:right}
+  .modal-foot{padding:14px 20px calc(18px + env(safe-area-inset-bottom));display:flex;gap:10px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:12px;padding:13px;font-size:13.5px;font-weight:800;flex:1}
+  .btn .ico{width:16px;height:16px}
+  .btn.primary{background:linear-gradient(120deg,var(--brand-600),var(--brand-deep));color:#fff;border-color:transparent}
+  .btn.gold{background:var(--gold);color:#3a2a05;border-color:transparent}
+
+  /* ===== TOAST ===== */
+  .toast-wrap{position:absolute;left:0;right:0;bottom:96px;display:flex;flex-direction:column;align-items:center;gap:9px;z-index:120;pointer-events:none;padding:0 16px}
+  .toast{display:flex;align-items:center;gap:10px;background:var(--brand-deep);color:#fff;padding:12px 16px;border-radius:13px;box-shadow:var(--shadow-lg);font-size:13px;font-weight:700;animation:tin .3s ease;pointer-events:auto;max-width:100%}
+  .toast.bad{background:var(--bad)}
+  .toast .ico{width:18px;height:18px;color:var(--gold)}
+  .toast.bad .ico{color:#fff}
+  @keyframes tin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .toast.out{opacity:0;transform:translateY(14px);transition:.3s}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9l1.5-5.5A1 1 0 0 1 5.46 3h13.08a1 1 0 0 1 .96.75L21 9"/><path d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"/><path d="M3 9a2.5 2.5 0 0 0 4.5 1.5A2.5 2.5 0 0 0 12 10a2.5 2.5 0 0 0 4.5.5A2.5 2.5 0 0 0 21 9"/><path d="M9 21v-5h6v5"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></symbol>
+  <symbol id="i-bar" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-trend-up" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></symbol>
+  <symbol id="i-trend-down" viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+  <symbol id="i-apple" viewBox="0 0 24 24"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06z"/><path d="M10 2c1 .5 2 2 2 5"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></symbol>
+  <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v1a7 7 0 0 1-7 7H9a7 7 0 0 1-7-7V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></symbol>
+  <symbol id="i-fish" viewBox="0 0 24 24"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6z"/><circle cx="15.5" cy="10.5" r="1"/><path d="M6.5 12C5 12 3 11 2 9c1.5.5 3 .5 4.5 0"/><path d="M6.5 12C5 12 3 13 2 15c1.5-.5 3-.5 4.5 0"/></symbol>
+  <symbol id="i-cash" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></symbol>
+</defs></svg>
+
+<div class="app">
+
+  <!-- APP BAR (changes per view) -->
+  <header class="appbar" id="appbar">
+    <!-- content injected by JS -->
+  </header>
+
+  <div class="content" id="content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="view active" id="view-dashboard">
+      <div class="kpis">
+        <div class="kpi"><div class="kt"><span class="ki" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-store"/></svg></span>ร้านค้า</div><div class="kv num">148</div><div class="kd up"><svg class="ico"><use href="#i-trend-up"/></svg>+6 เดือนนี้</div><div class="kbar"><i style="width:92%"></i></div></div>
+        <div class="kpi"><div class="kt"><span class="ki" style="background:var(--gold-soft);color:var(--gold)"><svg class="ico"><use href="#i-wallet"/></svg></span>ค่าเช่า</div><div class="kv num">฿221K</div><div class="kd up"><svg class="ico"><use href="#i-trend-up"/></svg>+8.4%</div><div class="kbar"><i style="width:84%"></i></div></div>
+        <div class="kpi"><div class="kt"><span class="ki" style="background:var(--ok-soft);color:var(--ok)"><svg class="ico"><use href="#i-pin"/></svg></span>อัตราการเช่า</div><div class="kv num">92%</div><div class="kd up"><svg class="ico"><use href="#i-trend-up"/></svg>136/148</div><div class="kbar"><i style="width:92%"></i></div></div>
+        <div class="kpi"><div class="kt"><span class="ki" style="background:var(--warn-soft);color:var(--warn)"><svg class="ico"><use href="#i-clock"/></svg></span>รอยืนยัน</div><div class="kv num" id="kpiPending">4</div><div class="kd warn"><svg class="ico"><use href="#i-alert"/></svg>ต้องดำเนินการ</div><div class="kbar"><i style="width:26%;background:linear-gradient(90deg,var(--gold),var(--warn))"></i></div></div>
+      </div>
+
+      <div class="sec-title"><svg class="ico"><use href="#i-check-circle"/></svg> รอการยืนยัน <span class="cnt" id="apCount">4</span><a class="link" data-jump="approvals">ทั้งหมด <svg class="ico"><use href="#i-chevron"/></svg></a></div>
+      <div class="app-list" id="apList">
+        <div class="app-card hl" data-kind="vendor" data-name="ร้านกาแฟดอยแม่โจ้" data-detail="ขอเช่าแผง B-09 · โซนเครื่องดื่ม" data-amount="฿1,500/เดือน">
+          <div class="ac-top">
+            <div class="app-ic" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-store"/></svg></div>
+            <div class="ac-main"><span class="app-tag" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-plus"/></svg>คำขอเช่าแผงใหม่</span><div class="app-t">ร้านกาแฟดอยแม่โจ้</div><div class="app-s">แผง B-09 · ผู้ขอ: วิภา ดอยคำ</div></div>
+            <div class="app-amt"><b class="num">฿1,500</b><span>/เดือน</span></div>
+          </div>
+          <div class="app-btns"><button class="mini reject" data-act="reject"><svg class="ico"><use href="#i-x"/></svg></button><button class="mini approve" data-act="approve"><svg class="ico"><use href="#i-check"/></svg> อนุมัติ</button></div>
+        </div>
+        <div class="app-card hl" data-kind="payment" data-name="สวนผักป้านวล · A-14" data-detail="โอนพร้อมเพย์ · อ้างอิง #PP-88214" data-amount="฿1,500">
+          <div class="ac-top">
+            <div class="app-ic" style="background:var(--gold-soft);color:var(--gold)"><svg class="ico"><use href="#i-cash"/></svg></div>
+            <div class="ac-main"><span class="app-tag" style="background:var(--gold-soft);color:var(--gold)"><svg class="ico"><use href="#i-wallet"/></svg>ยืนยันรับชำระค่าเช่า</span><div class="app-t">สวนผักป้านวล · A-14</div><div class="app-s">พร้อมเพย์ 8:02 น. · #PP-88214</div></div>
+            <div class="app-amt"><b class="num">฿1,500</b><span>มิ.ย.</span></div>
+          </div>
+          <div class="app-btns"><button class="mini reject" data-act="reject"><svg class="ico"><use href="#i-x"/></svg></button><button class="mini approve" data-act="approve"><svg class="ico"><use href="#i-check"/></svg> ยืนยันรับเงิน</button></div>
+        </div>
+        <div class="app-card hl" data-kind="move" data-name="ปลาสดน้องหมวย" data-detail="ขอย้ายจาก D-07 ไป D-13" data-amount="ไม่มีค่าใช้จ่าย">
+          <div class="ac-top">
+            <div class="app-ic" style="background:var(--surface-3);color:var(--brand)"><svg class="ico"><use href="#i-map"/></svg></div>
+            <div class="ac-main"><span class="app-tag" style="background:var(--surface-3);color:var(--muted)"><svg class="ico"><use href="#i-pin"/></svg>คำขอย้ายแผง</span><div class="app-t">ปลาสดน้องหมวย · D-07 → D-13</div><div class="app-s">เหตุผล: ใกล้ทางเข้าโซนประมง</div></div>
+            <div class="app-amt"><b>—</b><span>ฟรี</span></div>
+          </div>
+          <div class="app-btns"><button class="mini reject" data-act="reject"><svg class="ico"><use href="#i-x"/></svg></button><button class="mini approve" data-act="approve"><svg class="ico"><use href="#i-check"/></svg> อนุมัติ</button></div>
+        </div>
+      </div>
+
+      <div class="sec-title"><svg class="ico"><use href="#i-bar"/></svg> รายได้ตลาด 7 เดือน</div>
+      <div class="card">
+        <div class="bars" id="barChart">
+          <div class="bar"><div class="col" style="--h:52%"><span class="tip num">1.62M</span></div><div class="bl">ม.ค.</div></div>
+          <div class="bar"><div class="col" style="--h:60%"><span class="tip num">1.78M</span></div><div class="bl">ก.พ.</div></div>
+          <div class="bar"><div class="col" style="--h:57%"><span class="tip num">1.71M</span></div><div class="bl">มี.ค.</div></div>
+          <div class="bar"><div class="col" style="--h:72%"><span class="tip num">2.05M</span></div><div class="bl">เม.ย.</div></div>
+          <div class="bar"><div class="col" style="--h:68%"><span class="tip num">1.95M</span></div><div class="bl">พ.ค.</div></div>
+          <div class="bar"><div class="col" style="--h:83%"><span class="tip num">2.34M</span></div><div class="bl">มิ.ย.</div></div>
+          <div class="bar"><div class="col" style="--h:95%"><span class="tip num">2.61M</span></div><div class="bl">ก.ค.</div></div>
+        </div>
+      </div>
+
+      <div class="sec-title"><svg class="ico"><use href="#i-grid"/></svg> สัดส่วนหมวดสินค้า</div>
+      <div class="card">
+        <div class="donut-wrap">
+          <svg class="donut" viewBox="0 0 42 42" aria-label="สัดส่วนหมวดสินค้า">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--surface-3)" stroke-width="7"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#2E8B57" stroke-width="7" stroke-dasharray="34 66" stroke-dashoffset="25" pathLength="100"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#D79A1F" stroke-width="7" stroke-dasharray="22 78" stroke-dashoffset="-9" pathLength="100"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#7AB55C" stroke-width="7" stroke-dasharray="18 82" stroke-dashoffset="-31" pathLength="100"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#C15A3C" stroke-width="7" stroke-dasharray="14 86" stroke-dashoffset="-49" pathLength="100"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#8B7B54" stroke-width="7" stroke-dasharray="12 88" stroke-dashoffset="-63" pathLength="100"/>
+            <text x="21" y="20" text-anchor="middle" font-size="6.5" font-weight="800" fill="var(--text)">148</text>
+            <text x="21" y="26" text-anchor="middle" font-size="3.2" fill="var(--muted)">ร้าน</text>
+          </svg>
+          <div class="cat-list">
+            <div class="cat-row"><i style="background:#2E8B57"></i>ผักสด<span class="cv num">34%</span></div>
+            <div class="cat-row"><i style="background:#D79A1F"></i>ผลไม้<span class="cv num">22%</span></div>
+            <div class="cat-row"><i style="background:#7AB55C"></i>อาหารปรุงสำเร็จ<span class="cv num">18%</span></div>
+            <div class="cat-row"><i style="background:#C15A3C"></i>เนื้อ &amp; ประมง<span class="cv num">14%</span></div>
+            <div class="cat-row"><i style="background:#8B7B54"></i>ของแห้ง<span class="cv num">12%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-title"><svg class="ico"><use href="#i-star"/></svg> ร้านขายดีเดือนนี้</div>
+      <div class="vlist">
+        <div class="vrow"><span class="rankbadge gold num">1</span><span class="va" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-leaf"/></svg></span><div class="vmain"><div class="vn">สวนผักป้านวล</div><div class="vm"><span class="zone-tag">A-14</span>ผักสด</div></div><div class="vend"><div class="vsale num">฿82,400</div><span class="pill ok">+12%</span></div></div>
+        <div class="vrow"><span class="rankbadge num">2</span><span class="va" style="background:var(--gold-soft);color:var(--gold)"><svg class="ico"><use href="#i-apple"/></svg></span><div class="vmain"><div class="vn">สวนมะม่วงลุงคำ</div><div class="vm"><span class="zone-tag">B-03</span>ผลไม้</div></div><div class="vend"><div class="vsale num">฿76,900</div><span class="pill ok">+9%</span></div></div>
+        <div class="vrow"><span class="rankbadge num">3</span><span class="va" style="background:#f3e0d6;color:#b3502f"><svg class="ico"><use href="#i-bowl"/></svg></span><div class="vmain"><div class="vn">ครัวข้าวซอยแม่โจ้</div><div class="vm"><span class="zone-tag">C-11</span>อาหาร</div></div><div class="vend"><div class="vsale num">฿71,200</div><span class="pill ok">+15%</span></div></div>
+      </div>
+    </section>
+
+    <!-- ===== APPROVALS ===== -->
+    <section class="view" id="view-approvals">
+      <button class="btn" id="approveAll" style="margin-bottom:14px"><svg class="ico"><use href="#i-check-circle"/></svg> อนุมัติทั้งหมด</button>
+      <div class="app-list" id="apList2">
+        <div class="app-card" data-kind="vendor" data-name="ร้านต้นกล้าอินทรีย์" data-detail="ขอเช่าแผง C-23 · โซนอาหาร" data-amount="฿1,500/เดือน">
+          <div class="ac-top"><div class="app-ic" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-store"/></svg></div><div class="ac-main"><span class="app-tag" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-plus"/></svg>คำขอเช่าแผงใหม่</span><div class="app-t">ร้านต้นกล้าอินทรีย์</div><div class="app-s">แผง C-23 · ธนา เขียวขจี</div></div><div class="app-amt"><b class="num">฿1,500</b><span>/เดือน</span></div></div>
+          <div class="app-btns"><button class="mini reject" data-act="reject"><svg class="ico"><use href="#i-x"/></svg></button><button class="mini approve" data-act="approve"><svg class="ico"><use href="#i-check"/></svg> อนุมัติ</button></div>
+        </div>
+        <div class="app-card" data-kind="payment" data-name="สลัดผักดอยแม่โจ้ · A-08" data-detail="พร้อมเพย์ · #PP-88301 · ค้าง 2 งวด" data-amount="฿3,000">
+          <div class="ac-top"><div class="app-ic" style="background:var(--gold-soft);color:var(--gold)"><svg class="ico"><use href="#i-cash"/></svg></div><div class="ac-main"><span class="app-tag" style="background:var(--gold-soft);color:var(--gold)"><svg class="ico"><use href="#i-wallet"/></svg>ยืนยันรับชำระ (ค้าง 2 งวด)</span><div class="app-t">สลัดผักดอยแม่โจ้ · A-08</div><div class="app-s">พร้อมเพย์ · #PP-88301</div></div><div class="app-amt"><b class="num">฿3,000</b><span>พ.ค.–มิ.ย.</span></div></div>
+          <div class="app-btns"><button class="mini reject" data-act="reject"><svg class="ico"><use href="#i-x"/></svg></button><button class="mini approve" data-act="approve"><svg class="ico"><use href="#i-check"/></svg> ยืนยันรับเงิน</button></div>
+        </div>
+        <div class="app-card" data-kind="close" data-name="ของทอดเจ๊แดง · C-05" data-detail="ขอปิดร้านชั่วคราว 15 วัน (1–15 ส.ค.)" data-amount="15 วัน">
+          <div class="ac-top"><div class="app-ic" style="background:var(--bad-soft);color:var(--bad)"><svg class="ico"><use href="#i-clock"/></svg></div><div class="ac-main"><span class="app-tag" style="background:var(--bad-soft);color:var(--bad)"><svg class="ico"><use href="#i-alert"/></svg>คำขอปิดร้านชั่วคราว</span><div class="app-t">ของทอดเจ๊แดง · C-05</div><div class="app-s">หยุดขาย 1–15 ส.ค.</div></div><div class="app-amt"><b>15 วัน</b><span>ส.ค.</span></div></div>
+          <div class="app-btns"><button class="mini reject" data-act="reject"><svg class="ico"><use href="#i-x"/></svg></button><button class="mini approve" data-act="approve"><svg class="ico"><use href="#i-check"/></svg> อนุมัติ</button></div>
+        </div>
+        <div class="app-card" data-kind="vendor" data-name="น้ำผลไม้สดคุณอ้อย" data-detail="ขอเช่าแผง D-31" data-amount="฿1,500/เดือน">
+          <div class="ac-top"><div class="app-ic" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-store"/></svg></div><div class="ac-main"><span class="app-tag" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-plus"/></svg>คำขอเช่าแผงใหม่</span><div class="app-t">น้ำผลไม้สดคุณอ้อย</div><div class="app-s">แผง D-31 · อ้อย สายใจ</div></div><div class="app-amt"><b class="num">฿1,500</b><span>/เดือน</span></div></div>
+          <div class="app-btns"><button class="mini reject" data-act="reject"><svg class="ico"><use href="#i-x"/></svg></button><button class="mini approve" data-act="approve"><svg class="ico"><use href="#i-check"/></svg> อนุมัติ</button></div>
+        </div>
+      </div>
+      <div class="app-empty" id="apEmpty2"><svg class="ico"><use href="#i-check-circle"/></svg><div><b>ไม่มีคำขอค้างอยู่</b></div><div style="font-size:12px">ยืนยันครบทุกรายการแล้ว</div></div>
+    </section>
+
+    <!-- ===== VENDORS ===== -->
+    <section class="view" id="view-vendors">
+      <div class="searchbar"><svg class="ico"><use href="#i-search"/></svg><input type="search" placeholder="ค้นหาชื่อร้าน / เลขแผง…"></div>
+      <div class="chips"><button class="chip on">ทั้งหมด · 148</button><button class="chip">เปิดขาย</button><button class="chip">ค้างชำระ</button><button class="chip">แผงว่าง</button></div>
+      <div class="vlist">
+        <div class="vrow"><span class="va" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-leaf"/></svg></span><div class="vmain"><div class="vn">สวนผักป้านวล</div><div class="vm"><span class="zone-tag">A-14</span>ผักสด · ป้านวล</div></div><span class="pill ok">จ่ายแล้ว</span></div>
+        <div class="vrow"><span class="va" style="background:var(--gold-soft);color:var(--gold)"><svg class="ico"><use href="#i-apple"/></svg></span><div class="vmain"><div class="vn">สวนมะม่วงลุงคำ</div><div class="vm"><span class="zone-tag">B-03</span>ผลไม้ · คำ</div></div><span class="pill ok">จ่ายแล้ว</span></div>
+        <div class="vrow"><span class="va" style="background:#f3e0d6;color:#b3502f"><svg class="ico"><use href="#i-bowl"/></svg></span><div class="vmain"><div class="vn">ครัวข้าวซอยแม่โจ้</div><div class="vm"><span class="zone-tag">C-11</span>อาหาร · ศรีนวล</div></div><span class="pill warn">ครบ 3 วัน</span></div>
+        <div class="vrow"><span class="va" style="background:#dbe7ee;color:#3a6f8f"><svg class="ico"><use href="#i-fish"/></svg></span><div class="vmain"><div class="vn">ปลาสดน้องหมวย</div><div class="vm"><span class="zone-tag">D-07</span>ประมง · สมพร</div></div><span class="pill bad">ค้าง 2 ด.</span></div>
+        <div class="vrow"><span class="va" style="background:#ece2ce;color:#8a763f"><svg class="ico"><use href="#i-package"/></svg></span><div class="vmain"><div class="vn">ข้าวอินทรีย์ดอยคำ</div><div class="vm"><span class="zone-tag">A-22</span>ของแห้ง · บุญมา</div></div><span class="pill ok">จ่ายแล้ว</span></div>
+        <div class="vrow"><span class="va" style="background:#f3e0d6;color:#b3502f"><svg class="ico"><use href="#i-bowl"/></svg></span><div class="vmain"><div class="vn">ของทอดเจ๊แดง</div><div class="vm"><span class="zone-tag">C-05</span>อาหาร · แดง</div></div><span class="pill warn">หยุดพัก</span></div>
+        <div class="vrow"><span class="va" style="background:var(--surface-3);color:var(--faint)"><svg class="ico"><use href="#i-plus"/></svg></span><div class="vmain"><div class="vn">แผงว่าง</div><div class="vm"><span class="zone-tag">B-09</span>รอผู้เช่ารายใหม่</div></div><span class="pill warn">ว่าง</span></div>
+        <div class="vrow"><span class="va" style="background:var(--leaf-soft);color:var(--brand)"><svg class="ico"><use href="#i-leaf"/></svg></span><div class="vmain"><div class="vn">สลัดผักดอยแม่โจ้</div><div class="vm"><span class="zone-tag">A-08</span>ผักสด · ปิยะ</div></div><span class="pill bad">ค้าง 1 ด.</span></div>
+      </div>
+    </section>
+
+    <!-- ===== MAP ===== -->
+    <section class="view" id="view-map">
+      <div class="maplegend">
+        <span><i style="background:var(--brand)"></i>จ่ายแล้ว</span>
+        <span><i style="background:var(--gold)"></i>ค้างชำระ</span>
+        <span><i style="background:var(--surface-3);border:1.5px solid var(--border-strong)"></i>ว่าง</span>
+        <span><i style="background:var(--bad)"></i>ปิดปรับปรุง</span>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="mapscroll"><div class="map"><svg viewBox="0 0 580 300" id="mapSvg" role="img" aria-label="แผนผังตลาด"></svg></div></div>
+        <div class="maphint">← เลื่อนดูโซนอื่น · แตะแผงเพื่อดูรายละเอียด →</div>
+      </div>
+      <div class="map-detail" id="mapDetail">
+        <div class="md-ic"><svg class="ico"><use href="#i-leaf"/></svg></div>
+        <div><div class="md-t">แผง A-14 · สวนผักป้านวล</div><div class="md-s">ผักสด · โซน A · ฿1,500/เดือน</div></div>
+        <span class="md-status"><span class="pill ok">จ่ายแล้ว</span></span>
+      </div>
+    </section>
+
+    <!-- ===== MORE / ACCOUNT ===== -->
+    <section class="view" id="view-more">
+      <div class="profcard">
+        <div class="profcover"><div class="pat"></div></div>
+        <div class="pav"><svg class="ico"><use href="#i-user"/></svg></div>
+        <div class="profbody">
+          <h3>คุณสมชาย ผู้จัดการ</h3>
+          <div class="pmeta">เจ้าของตลาด · ตลาดสดแม่โจ้</div>
+          <div class="statrow">
+            <div class="st"><b class="num">148</b><span>ร้านค้า</span></div>
+            <div class="st"><b class="num">฿221K</b><span>ค่าเช่า/เดือน</span></div>
+            <div class="st"><b class="num">92%</b><span>อัตราเช่า</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="menu">
+        <button class="mitem" data-jump="vendors"><span class="mi"><svg class="ico"><use href="#i-store"/></svg></span>จัดการร้านค้า<span class="chev"><svg class="ico"><use href="#i-chevron"/></svg></span></button>
+        <button class="mitem"><span class="mi"><svg class="ico"><use href="#i-wallet"/></svg></span>ค่าเช่า &amp; บิล<span class="chev"><svg class="ico"><use href="#i-chevron"/></svg></span></button>
+        <button class="mitem"><span class="mi"><svg class="ico"><use href="#i-file"/></svg></span>รายงาน &amp; ส่งออก<span class="chev"><svg class="ico"><use href="#i-chevron"/></svg></span></button>
+        <button class="mitem" id="themeItem"><span class="mi"><svg class="ico"><use href="#i-moon"/></svg></span>ธีมการแสดงผล<span class="mtog" id="themeState">อัตโนมัติ</span></button>
+        <button class="mitem"><span class="mi"><svg class="ico"><use href="#i-gear"/></svg></span>ตั้งค่าระบบ<span class="chev"><svg class="ico"><use href="#i-chevron"/></svg></span></button>
+        <button class="mitem" style="color:var(--bad)"><span class="mi" style="background:var(--bad-soft);color:var(--bad)"><svg class="ico"><use href="#i-logout"/></svg></span>ออกจากระบบ<span class="chev"><svg class="ico"><use href="#i-chevron"/></svg></span></button>
+      </div>
+    </section>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="tabbar" aria-label="เมนูหลัก">
+    <button class="tab on" data-view="dashboard"><svg class="ico ti"><use href="#i-grid"/></svg>แดชบอร์ด</button>
+    <button class="tab" data-view="approvals"><svg class="ico ti"><use href="#i-inbox"/></svg>อนุมัติ<span class="tbadge" id="navBadge">4</span></button>
+    <button class="tab" data-view="vendors"><svg class="ico ti"><use href="#i-store"/></svg>ร้านค้า</button>
+    <button class="tab" data-view="map"><svg class="ico ti"><use href="#i-map"/></svg>แผนผัง</button>
+    <button class="tab" data-view="more"><svg class="ico ti"><use href="#i-more"/></svg>บัญชี</button>
+  </nav>
+
+  <!-- MODAL -->
+  <div class="modal-back" id="modalBack" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-grab"></div>
+      <div class="modal-top">
+        <div class="modal-ic" id="modalIc"><svg class="ico"><use href="#i-check"/></svg></div>
+        <div><h3 id="modalTitle">ยืนยัน</h3><p id="modalDesc"></p></div>
+      </div>
+      <div class="modal-body"><div class="modal-summary" id="modalSummary"></div></div>
+      <div class="modal-foot">
+        <button class="btn" id="modalCancel"><svg class="ico"><use href="#i-x"/></svg> ยกเลิก</button>
+        <button class="btn primary" id="modalConfirm"><svg class="ico"><use href="#i-check"/></svg> ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+
+  // ===== APP BAR content per view =====
+  var titles={
+    dashboard:null,
+    approvals:{t:'คำขออนุมัติ'},
+    vendors:{t:'ร้านค้าในตลาด'},
+    map:{t:'แผนผังตลาด'},
+    more:{t:'บัญชีของฉัน'}
+  };
+  var appbar=document.getElementById('appbar');
+  function renderAppbar(v){
+    if(v==='dashboard'){
+      appbar.className='appbar';
+      appbar.innerHTML=''+
+        '<div class="ab-row">'+
+          '<div class="ab-av"><svg class="ico"><use href="#i-user"/></svg></div>'+
+          '<div><div class="ab-hi">สวัสดีตอนเช้า · อ. 7 ก.ค. 2569</div><div class="ab-name">คุณสมชาย</div></div>'+
+          '<div class="ab-actions"><button class="ab-btn" id="bellBtn" aria-label="แจ้งเตือน"><svg class="ico"><use href="#i-bell"/></svg><span class="ndot"></span></button></div>'+
+        '</div>'+
+        '<div class="ab-sub"><svg class="ico"><use href="#i-clock"/></svg><div>มี <b id="abPending">4</b> รายการรอการยืนยันจากคุณ</div><button class="go" data-jump="approvals">ตรวจสอบ <svg class="ico"><use href="#i-chevron"/></svg></button></div>';
+      appbar.querySelector('#bellBtn').addEventListener('click',function(){go('approvals');});
+      appbar.querySelector('[data-jump]').addEventListener('click',function(){go('approvals');});
+      syncPending();
+    }else{
+      var meta=titles[v];
+      appbar.className='appbar plain';
+      appbar.innerHTML='<div class="ab-title"><button class="back" id="backBtn" aria-label="ย้อนกลับ"><svg class="ico"><use href="#i-chevron"/></svg></button><h1>'+meta.t+'</h1><span class="spacer"></span>'+
+        (v==='vendors'?'<button class="ab-btn" aria-label="เพิ่มร้านค้า"><svg class="ico"><use href="#i-plus"/></svg></button>':'')+'</div>';
+      var b=appbar.querySelector('#backBtn'); if(b)b.addEventListener('click',function(){go('dashboard');});
+    }
+  }
+
+  // ===== NAV =====
+  function go(v){
+    document.querySelectorAll('.tab').forEach(function(n){n.classList.toggle('on',n.dataset.view===v);});
+    document.querySelectorAll('.view').forEach(function(s){s.classList.remove('active');});
+    var el=document.getElementById('view-'+v); if(el)el.classList.add('active');
+    renderAppbar(v);
+    document.getElementById('content').scrollTop=0;
+    if(v==='dashboard'||v==='approvals')requestAnimationFrame(animBars);
+  }
+  document.querySelectorAll('.tab').forEach(function(n){n.addEventListener('click',function(){go(n.dataset.view);});});
+  document.addEventListener('click',function(e){var j=e.target.closest('[data-jump]');if(j&&!appbar.contains(j)){go(j.dataset.jump);}});
+
+  // ===== THEME =====
+  function sysDark(){return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;}
+  function curTheme(){return root.getAttribute('data-theme')||'auto';}
+  function applyThemeItem(){
+    var st=document.getElementById('themeState');
+    if(st)st.textContent={auto:'อัตโนมัติ',light:'สว่าง',dark:'มืด'}[curTheme()];
+    var mi=document.querySelector('#themeItem .mi .ico use');
+    if(mi)mi.setAttribute('href', (curTheme()==='dark'||(curTheme()==='auto'&&sysDark()))?'#i-sun':'#i-moon');
+  }
+  document.getElementById('themeItem').addEventListener('click',function(){
+    var order=['auto','light','dark'],cur=curTheme(),next=order[(order.indexOf(cur)+1)%3];
+    if(next==='auto')root.removeAttribute('data-theme');else root.setAttribute('data-theme',next);
+    applyThemeItem();
+  });
+  applyThemeItem();
+
+  // ===== MODAL =====
+  var mBack=document.getElementById('modalBack'),mIc=document.getElementById('modalIc'),
+      mTitle=document.getElementById('modalTitle'),mDesc=document.getElementById('modalDesc'),
+      mSum=document.getElementById('modalSummary'),mConfirm=document.getElementById('modalConfirm'),mCancel=document.getElementById('modalCancel');
+  var pendingAction=null;
+  function openModal(o){
+    mIc.className='modal-ic'+(o.danger?' danger':'');
+    mIc.innerHTML='<svg class="ico"><use href="#'+(o.danger?'i-alert':'i-check')+'"/></svg>';
+    mTitle.textContent=o.title; mDesc.textContent=o.desc;
+    mSum.innerHTML=o.rows.map(function(r){return '<div class="r"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';}).join('');
+    mConfirm.className='btn '+(o.danger?'gold':'primary');
+    mConfirm.innerHTML='<svg class="ico"><use href="#'+(o.danger?'i-x':'i-check')+'"/></svg> '+o.confirmLabel;
+    pendingAction=o.onConfirm; mBack.classList.add('show');
+  }
+  function closeModal(){mBack.classList.remove('show');pendingAction=null;}
+  mCancel.addEventListener('click',closeModal);
+  mBack.addEventListener('click',function(e){if(e.target===mBack)closeModal();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&mBack.classList.contains('show'))closeModal();});
+  mConfirm.addEventListener('click',function(){var a=pendingAction;closeModal();if(a)a();});
+
+  // ===== TOAST =====
+  function toast(msg,bad){
+    var w=document.getElementById('toastWrap'),t=document.createElement('div');
+    t.className='toast'+(bad?' bad':'');
+    t.innerHTML='<svg class="ico"><use href="#'+(bad?'i-x':'i-check-circle')+'"/></svg><span>'+msg+'</span>';
+    w.appendChild(t);
+    setTimeout(function(){t.classList.add('out');},2500);
+    setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},2850);
+  }
+
+  // ===== APPROVALS =====
+  function syncPending(){
+    var n=document.querySelectorAll('#apList .app-card:not(.removing)').length;
+    var ab=document.getElementById('abPending'); if(ab)ab.textContent=n;
+  }
+  function updateCounts(){
+    var n=document.querySelectorAll('#apList .app-card:not(.removing)').length;
+    var badge=document.getElementById('navBadge'),apCount=document.getElementById('apCount'),kpi=document.getElementById('kpiPending');
+    if(badge){badge.textContent=n;badge.style.display=n?'':'none';}
+    if(apCount){apCount.textContent=n;apCount.style.display=n?'':'none';}
+    if(kpi)kpi.textContent=n;
+    syncPending();
+    var n2=document.querySelectorAll('#apList2 .app-card:not(.removing)').length;
+    document.getElementById('apEmpty2').classList.toggle('show',n2===0);
+    var aa=document.getElementById('approveAll'); if(aa)aa.style.display=n2?'':'none';
+  }
+  function removeCard(card,msg,bad){
+    card.classList.add('removing'); toast(msg,bad);
+    setTimeout(function(){if(card.parentNode)card.parentNode.removeChild(card);updateCounts();},260);
+  }
+  function bind(scope){
+    scope.querySelectorAll('.app-card').forEach(function(card){
+      var name=card.dataset.name,detail=card.dataset.detail,amount=card.dataset.amount,kind=card.dataset.kind;
+      var kindLabel={vendor:'คำขอเช่าแผงใหม่',payment:'รับชำระค่าเช่า',move:'ย้ายแผง',close:'ปิดร้านชั่วคราว'}[kind]||'คำขอ';
+      card.querySelector('[data-act="approve"]').addEventListener('click',function(){
+        var isPay=kind==='payment';
+        var rows=[['ประเภท',kindLabel],['ร้านค้า',name],['รายละเอียด',detail]];
+        if(amount&&amount!=='—')rows.push([isPay?'จำนวนเงิน':'ค่าเช่า',amount]);
+        openModal({title:isPay?'ยืนยันการรับชำระเงิน':'ยืนยันการอนุมัติ',
+          desc:'ระบบจะบันทึกและแจ้งผลให้ร้านค้าทันที',
+          rows:rows,confirmLabel:isPay?'ยืนยันรับเงิน':'อนุมัติ',
+          onConfirm:function(){removeCard(card,(isPay?'บันทึกการรับชำระ ':'อนุมัติ ')+name+' แล้ว');}});
+      });
+      card.querySelector('[data-act="reject"]').addEventListener('click',function(){
+        openModal({danger:true,title:'ยืนยันการปฏิเสธ',
+          desc:'ระบบจะแจ้งผลการปฏิเสธให้ร้านค้าทราบ',
+          rows:[['ประเภท',kindLabel],['ร้านค้า',name],['รายละเอียด',detail]],
+          confirmLabel:'ยืนยันปฏิเสธ',
+          onConfirm:function(){removeCard(card,'ปฏิเสธคำขอ '+name+' แล้ว',true);}});
+      });
+    });
+  }
+  bind(document.getElementById('apList'));
+  bind(document.getElementById('apList2'));
+  document.getElementById('approveAll').addEventListener('click',function(){
+    var cards=document.querySelectorAll('#apList2 .app-card:not(.removing)');
+    if(!cards.length){toast('ไม่มีรายการค้างอยู่');return;}
+    openModal({title:'อนุมัติทั้งหมด',desc:'ยืนยันดำเนินการทุกรายการที่ค้างอยู่ในครั้งเดียว',
+      rows:[['จำนวนรายการ',cards.length+' รายการ']],confirmLabel:'อนุมัติทั้งหมด',
+      onConfirm:function(){cards.forEach(function(c,i){setTimeout(function(){removeCard(c,'ดำเนินการเรียบร้อย');},i*110);});}});
+  });
+
+  // ===== BAR CHART =====
+  function animBars(){document.querySelectorAll('#barChart .col').forEach(function(c){c.style.height=c.style.getPropertyValue('--h')||'50%';});}
+
+  // ===== MAP =====
+  var stalls=[
+    {id:'A-08',z:'A',x:20,y:44,st:'occ',name:'สลัดผักดอยแม่โจ้',cat:'ผักสด',rent:'ค้าง 1 เดือน',ic:'i-leaf',pay:'bad'},
+    {id:'A-14',z:'A',x:80,y:44,st:'occ',name:'สวนผักป้านวล',cat:'ผักสด',rent:'จ่ายแล้ว',ic:'i-leaf',pay:'ok'},
+    {id:'A-22',z:'A',x:140,y:44,st:'occ',name:'ข้าวอินทรีย์ดอยคำ',cat:'ของแห้ง',rent:'จ่ายแล้ว',ic:'i-package',pay:'ok'},
+    {id:'A-05',z:'A',x:200,y:44,st:'occ',name:'ผักกาดลุงมี',cat:'ผักสด',rent:'จ่ายแล้ว',ic:'i-leaf',pay:'ok'},
+    {id:'A-31',z:'A',x:260,y:44,st:'due',name:'เห็ดสดบ้านสวน',cat:'ผักสด',rent:'ค้างชำระ',ic:'i-leaf',pay:'due'},
+    {id:'B-03',z:'B',x:20,y:120,st:'occ',name:'สวนมะม่วงลุงคำ',cat:'ผลไม้',rent:'จ่ายแล้ว',ic:'i-apple',pay:'ok'},
+    {id:'B-09',z:'B',x:80,y:120,st:'empty',name:'แผงว่าง',cat:'—',rent:'รอผู้เช่า',ic:'i-plus',pay:'empty'},
+    {id:'B-15',z:'B',x:140,y:120,st:'occ',name:'ส้มสายน้ำผึ้ง',cat:'ผลไม้',rent:'จ่ายแล้ว',ic:'i-apple',pay:'ok'},
+    {id:'B-21',z:'B',x:200,y:120,st:'occ',name:'กล้วยไข่แม่โจ้',cat:'ผลไม้',rent:'จ่ายแล้ว',ic:'i-apple',pay:'ok'},
+    {id:'B-27',z:'B',x:260,y:120,st:'due',name:'สับปะรดภูแล',cat:'ผลไม้',rent:'ค้างชำระ',ic:'i-apple',pay:'due'},
+    {id:'C-05',z:'C',x:20,y:196,st:'closed',name:'ของทอดเจ๊แดง',cat:'อาหาร',rent:'ปิดปรับปรุง',ic:'i-bowl',pay:'bad'},
+    {id:'C-11',z:'C',x:80,y:196,st:'due',name:'ครัวข้าวซอยแม่โจ้',cat:'อาหาร',rent:'ครบกำหนด 3 วัน',ic:'i-bowl',pay:'due'},
+    {id:'C-17',z:'C',x:140,y:196,st:'occ',name:'น้ำพริกแม่อุ๊ย',cat:'อาหาร',rent:'จ่ายแล้ว',ic:'i-bowl',pay:'ok'},
+    {id:'C-23',z:'C',x:200,y:196,st:'empty',name:'แผงว่าง',cat:'—',rent:'รอผู้เช่า',ic:'i-plus',pay:'empty'},
+    {id:'C-29',z:'C',x:260,y:196,st:'occ',name:'ขนมจีนป้าลำดวน',cat:'อาหาร',rent:'จ่ายแล้ว',ic:'i-bowl',pay:'ok'},
+    {id:'D-07',z:'D',x:360,y:44,st:'occ',name:'ปลาสดน้องหมวย',cat:'ประมง',rent:'ค้าง 2 เดือน',ic:'i-fish',pay:'bad'},
+    {id:'D-13',z:'D',x:420,y:44,st:'occ',name:'หมูสดฟาร์มแม่โจ้',cat:'เนื้อสัตว์',rent:'จ่ายแล้ว',ic:'i-fish',pay:'ok'},
+    {id:'D-19',z:'D',x:480,y:44,st:'occ',name:'ไก่บ้านลุงตา',cat:'เนื้อสัตว์',rent:'จ่ายแล้ว',ic:'i-fish',pay:'ok'},
+    {id:'D-25',z:'D',x:360,y:120,st:'occ',name:'ไข่ไก่อารมณ์ดี',cat:'อื่นๆ',rent:'จ่ายแล้ว',ic:'i-package',pay:'ok'},
+    {id:'D-31',z:'D',x:420,y:120,st:'empty',name:'แผงว่าง',cat:'—',rent:'รอผู้เช่า',ic:'i-plus',pay:'empty'},
+    {id:'D-37',z:'D',x:480,y:120,st:'occ',name:'กุ้งสดทะเลใต้',cat:'ประมง',rent:'จ่ายแล้ว',ic:'i-fish',pay:'ok'},
+    {id:'D-08',z:'D',x:360,y:196,st:'occ',name:'ดอกไม้ป้าจันทร์',cat:'อื่นๆ',rent:'จ่ายแล้ว',ic:'i-leaf',pay:'ok'},
+    {id:'D-14',z:'D',x:420,y:196,st:'occ',name:'ต้นกล้าแม่โจ้',cat:'อื่นๆ',rent:'จ่ายแล้ว',ic:'i-leaf',pay:'ok'},
+    {id:'D-20',z:'D',x:480,y:196,st:'due',name:'สมุนไพรลุงจวน',cat:'ของแห้ง',rent:'ครบกำหนด',ic:'i-package',pay:'due'}
+  ];
+  var colors={occ:'var(--brand)',due:'var(--gold)',empty:'var(--surface-3)',closed:'var(--bad)'};
+  var svg=document.getElementById('mapSvg'),NS='http://www.w3.org/2000/svg';
+  function rect(x,y,w,h,fill,rx,extra){var r=document.createElementNS(NS,'rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);r.setAttribute('fill',fill);r.setAttribute('rx',rx||0);if(extra)for(var k in extra)r.setAttribute(k,extra[k]);return r;}
+  function txt(x,y,s,size,fill,anchor,weight){var t=document.createElementNS(NS,'text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('font-size',size);t.setAttribute('fill',fill);if(anchor)t.setAttribute('text-anchor',anchor);if(weight)t.setAttribute('font-weight',weight);t.textContent=s;return t;}
+  function useIcon(id,x,y,size,color){var u=document.createElementNS(NS,'use');u.setAttribute('href','#'+id);u.setAttribute('x',x);u.setAttribute('y',y);u.setAttribute('width',size);u.setAttribute('height',size);u.setAttribute('stroke',color);u.setAttribute('fill','none');u.setAttribute('stroke-width','2');u.setAttribute('stroke-linecap','round');u.setAttribute('stroke-linejoin','round');return u;}
+  if(svg){
+    var zones=[{l:'โซน A · ผักสด',x:10,y:22,w:300,h:44},{l:'โซน B · ผลไม้',x:10,y:98,w:300,h:44},{l:'โซน C · อาหารปรุงสำเร็จ',x:10,y:174,w:300,h:44},{l:'โซน D · เนื้อ · ประมง · อื่นๆ',x:350,y:22,w:180,h:196}];
+    zones.forEach(function(z){svg.appendChild(rect(z.x,z.y,z.w,z.h,'color-mix(in srgb, var(--brand) 6%, transparent)',10));svg.appendChild(txt(z.x+4,z.y-6,z.l,9,'var(--muted)','start',700));});
+    svg.appendChild(txt(330,150,'ทางเดินหลัก',7,'var(--faint)','middle',700));
+    stalls.forEach(function(s){
+      var g=document.createElementNS(NS,'g');g.setAttribute('class','stallcell');g.setAttribute('tabindex','0');g.setAttribute('role','button');g.setAttribute('aria-label',s.id+' '+s.name+' '+s.rent);
+      var r=rect(s.x,s.y,48,32,colors[s.st],7);
+      if(s.st==='empty'){r.setAttribute('stroke','var(--border-strong)');r.setAttribute('stroke-width','1.5');r.setAttribute('stroke-dasharray','4 3');}
+      g.appendChild(r);
+      g.appendChild(useIcon(s.ic,s.x+8,s.y+5,11,s.st==='empty'?'var(--muted)':'#fff'));
+      g.appendChild(txt(s.x+40,s.y+23,s.id,7,(s.st==='empty'?'var(--muted)':'rgba(255,255,255,.95)'),'end',700));
+      g.addEventListener('click',function(){selectStall(s);});
+      g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();selectStall(s);}});
+      svg.appendChild(g);
+    });
+  }
+  var payClass={ok:'ok',due:'warn',bad:'bad',empty:'warn'};
+  function selectStall(s){
+    var d=document.getElementById('mapDetail');
+    var status=s.st==='empty'?'<span class="pill warn">แผงว่าง</span>':(s.st==='closed'?'<span class="pill bad">ปิดปรับปรุง</span>':'<span class="pill '+payClass[s.pay]+'">'+s.rent+'</span>');
+    d.innerHTML='<div class="md-ic"><svg class="ico"><use href="#'+s.ic+'"/></svg></div><div><div class="md-t">แผง '+s.id+' · '+s.name+'</div><div class="md-s">'+(s.cat==='—'?'ยังไม่มีผู้เช่า':s.cat)+' · โซน '+s.z+' · ฿1,500/เดือน</div></div><span class="md-status">'+status+'</span>';
+  }
+
+  // chips (visual)
+  document.querySelectorAll('.chips').forEach(function(g){g.querySelectorAll('.chip').forEach(function(c){c.addEventListener('click',function(){g.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on');});c.classList.add('on');});});});
+
+  renderAppbar('dashboard');
+  updateCounts();
+  requestAnimationFrame(function(){requestAnimationFrame(animBars);});
+})();
+</script>
+</body>
+</html>
