@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Maejo Market · แอปจัดการตลาดแม่โจ้">
+
+  <!-- PWA: เพิ่มลงหน้าจอโฮมได้เหมือนแอปจริง -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Maejo Market">
+  <meta name="theme-color" content="#2E7D32">
+
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="manifest" href="manifest.json">
+
+  <title>Maejo Market · ตลาดแม่โจ้</title>
+  <style>
+    body { background:#2E7D32; margin:0; }
+    #splash {
+      position:fixed; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:14px;
+      background:#2E7D32; color:#fff; font-family:sans-serif;
+    }
+    #splash .logo { font-size:26px; font-weight:800; letter-spacing:.5px; }
+    #splash .sub { font-size:14px; opacity:.85; }
+    .spin { width:34px; height:34px; border:3px solid rgba(255,255,255,.3);
+      border-top-color:#fff; border-radius:50%; animation:sp 1s linear infinite; }
+    @keyframes sp { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <div class="logo">🌿 Maejo Market</div>
+    <div class="sub">ตลาดแม่โจ้ · กำลังโหลด…</div>
+    <div class="spin"></div>
+  </div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

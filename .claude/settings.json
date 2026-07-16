@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter --version)",
+      "Bash(dart --version)",
+      "Bash(firebase --version)",
+      "Bash(flutterfire --version)",
+      "PowerShell($f = Get-Command flutter -ErrorAction SilentlyContinue; if \\($f\\) { \"flutter: $\\($f.Source\\)\"; flutter --version } else { \"flutter: NOT FOUND\" }; $d = Get-Command dart -ErrorAction SilentlyContinue; if \\($d\\) { \"dart: $\\($d.Source\\)\" } else { \"dart: NOT FOUND\" })",
+      "PowerShell(git clone https://github.com/flutter/flutter.git -b stable --depth 1 C:\\\\src\\\\flutter 2>&1 | Select-Object -Last 5; \"EXITCODE=$LASTEXITCODE\")",
+      "PowerShell(& \"C:\\\\src\\\\flutter\\\\bin\\\\flutter.bat\" --version 2>&1)",
+      "PowerShell(& \"C:\\\\src\\\\flutter\\\\bin\\\\flutter.bat\" create maejo_market --platforms=web,android --project-name maejo_market 2>&1)",
+      "PowerShell(& \"C:\\\\src\\\\flutter\\\\bin\\\\flutter.bat\" devices 2>&1)",
+      "PowerShell(& \"C:\\\\src\\\\flutter\\\\bin\\\\flutter.bat\" run -d chrome --web-port 8080 2>&1)",
+      "Bash(break)",
+      "Read(//c/Users/korpor/.agents/skills/deploy-to-vercel/resources/**)",
+      "Bash(bash ~/.claude/skills/deploy-to-vercel/resources/deploy.sh \"/c/Users/korpor/OneDrive/Desktop/on/maejo_market/build/web\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Read(//tmp/**)",
+      "Bash(grep -n \"Deploying\\\\|curl\\\\|DEPLOY_ENDPOINT\\\\|previewUrl\\\\|claimUrl\\\\|jq\\\\|response\" ~/.claude/skills/deploy-to-vercel/resources/deploy.sh | head -40)",
+      "Bash(npm install *)",
+      "Bash(vercel --version)"
+    ]
+  }
+}
