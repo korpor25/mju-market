@@ -5,7 +5,7 @@ import '../../widgets/common.dart';
 
 /// ตรวจมาตรฐานร้านค้า (ให้คะแนนตามเกณฑ์)
 class StandardTab extends StatefulWidget {
-  const StandardTab({super.key});
+  StandardTab({super.key});
 
   @override
   State<StandardTab> createState() => _StandardTabState();
@@ -20,7 +20,7 @@ class _StandardTabState extends State<StandardTab> {
     'การจัดการขยะ': 3,
   };
   final _note = TextEditingController();
-  String _shop = 'ร้านป้าจันทร์ อาหารเหนือ';
+  String? _shopId;
 
   @override
   void dispose() {
@@ -34,79 +34,106 @@ class _StandardTabState extends State<StandardTab> {
   @override
   Widget build(BuildContext context) {
     final shops = appState.shops;
+    // ค่าที่เลือกไว้อาจไม่มีอยู่จริง (ร้านถูกลบ / ข้อมูลมาจาก Firestore ไม่ใช่ demo)
+    // ถ้าไม่กันตรงนี้ DropdownButtonFormField จะ assert แตกทันทีที่ build
+    final selectedId = shops.any((s) => s.id == _shopId) ? _shopId : null;
     return Column(
       children: [
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             children: [
               // เลือกร้าน
               AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('เลือกร้านที่จะตรวจ', style: TextStyle(fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 10),
+                    Text('เลือกร้านที่จะตรวจ', style: TextStyle(fontWeight: FontWeight.w800)),
+                    SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: _shop,
+                      value: selectedId,
                       isExpanded: true,
-                      decoration: const InputDecoration(prefixIcon: Icon(Icons.storefront_outlined)),
+                      decoration: InputDecoration(
+                        prefixIcon: Icon(Icons.storefront_outlined),
+                        hintText: shops.isEmpty ? 'ยังไม่มีร้านค้าในระบบ' : 'เลือกร้าน',
+                      ),
                       items: shops
-                          .map((s) => DropdownMenuItem(value: s.name, child: Text('${s.name} · ${s.stallId}')))
+                          .map((s) => DropdownMenuItem(value: s.id, child: Text('${s.name} · ${s.stallId}')))
                           .toList(),
-                      onChanged: (v) => setState(() => _shop = v ?? _shop),
+                      onChanged: shops.isEmpty ? null : (v) => setState(() => _shopId = v),
                     ),
                   ],
                 ),
               ),
-              const SectionTitle('รายการตรวจ', icon: Icons.checklist_rounded),
+              SectionTitle('รายการตรวจ', icon: Icons.checklist_rounded),
               AppCard(
                 child: Column(
                   children: _criteria.keys.map((k) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(children: [
-                        Expanded(child: Text(k, style: const TextStyle(fontWeight: FontWeight.w600))),
-                        _Stars(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      child: LayoutBuilder(builder: (context, c) {
+                        final label = Text(k, style: TextStyle(fontWeight: FontWeight.w600));
+                        final stars = _Stars(
                           value: _criteria[k]!,
                           onChanged: (v) => setState(() => _criteria[k] = v),
-                        ),
-                      ]),
+                        );
+                        // ดาว 5 ดวงกว้างราว 140px — ถ้าที่เหลือไม่พอให้ขึ้นบรรทัดใหม่
+                        // และย่อให้พอดีเสมอ แทนที่จะปล่อยให้ Row ล้น
+                        if (c.maxWidth < 220) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              label,
+                              SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: stars,
+                              ),
+                            ],
+                          );
+                        }
+                        return Row(children: [Expanded(child: label), stars]);
+                      }),
                     );
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               AppCard(
                 child: Row(children: [
-                  const Icon(Icons.star_rounded, color: AppColors.accent),
-                  const SizedBox(width: 8),
-                  const Text('คะแนนเฉลี่ย', style: TextStyle(fontWeight: FontWeight.w700)),
-                  const Spacer(),
+                  Icon(Icons.star_rounded, color: AppColors.accent),
+                  SizedBox(width: 8),
+                  Text('คะแนนเฉลี่ย', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Spacer(),
                   Text(_avg.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
-                  const Text(' / 5', style: TextStyle(color: AppColors.muted)),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                  Text(' / 5', style: TextStyle(color: AppColors.muted)),
                 ]),
               ),
-              const SectionTitle('หมายเหตุเพิ่มเติม', icon: Icons.edit_note_rounded),
+              SectionTitle('หมายเหตุเพิ่มเติม', icon: Icons.edit_note_rounded),
               TextField(
                 controller: _note,
                 maxLines: 3,
-                decoration: const InputDecoration(hintText: 'บันทึกข้อสังเกต (ถ้ามี)…'),
+                decoration: InputDecoration(hintText: 'บันทึกข้อสังเกต (ถ้ามี)…'),
               ),
             ],
           ),
         ),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: ElevatedButton.icon(
-              onPressed: () {
-                showSnack(context, 'บันทึกผลการตรวจ $_shop แล้ว (เฉลี่ย ${_avg.toStringAsFixed(1)})');
-                _note.clear();
-              },
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('บันทึกผลการตรวจ'),
+              onPressed: selectedId == null
+                  ? null
+                  : () {
+                      final shop = shops.firstWhere((s) => s.id == selectedId);
+                      showSnack(context,
+                          'บันทึกผลการตรวจ ${shop.name} แล้ว (เฉลี่ย ${_avg.toStringAsFixed(1)})');
+                      _note.clear();
+                    },
+              icon: Icon(Icons.save_outlined),
+              label: Text('บันทึกผลการตรวจ'),
             ),
           ),
         ),
@@ -129,7 +156,7 @@ class _Stars extends StatelessWidget {
         return GestureDetector(
           onTap: () => onChanged(i + 1),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 1),
+            padding: EdgeInsets.symmetric(horizontal: 1),
             child: Icon(
               filled ? Icons.star_rounded : Icons.star_border_rounded,
               color: filled ? AppColors.accent : AppColors.border,

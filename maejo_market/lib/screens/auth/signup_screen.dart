@@ -6,7 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/common.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  SignupScreen({super.key});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -73,25 +73,25 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('สมัครสมาชิก')),
+      appBar: AppBar(title: Text('สมัครสมาชิก')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
+              constraints: BoxConstraints(maxWidth: 460),
               child: Form(
                 key: _form,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const AppLogo(size: 64),
-                    const SizedBox(height: 8),
-                    const Center(
+                    AppLogo(size: 64),
+                    SizedBox(height: 8),
+                    Center(
                       child: Text('สร้างบัญชีเพื่อใช้งานแอป Maejo Market',
                           style: TextStyle(color: AppColors.muted)),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     _label('1. เลือกประเภทบัญชี'),
                     Row(children: [
                       Expanded(
@@ -103,7 +103,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           onTap: () => setState(() => _role = UserRole.buyer),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(
                         child: _RoleCard(
                           selected: _role == UserRole.seller,
@@ -114,7 +114,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ),
                     ]),
-                    const SizedBox(height: 18),
+                    SizedBox(height: 18),
                     _label('2. ข้อมูลส่วนตัว'),
                     _field(_name, 'ชื่อ-นามสกุล *', Icons.person_outline,
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'กรอกชื่อ-นามสกุล' : null),
@@ -136,15 +136,15 @@ class _SignupScreenState extends State<SignupScreen> {
                         keyboard: TextInputType.phone,
                         validator: (v) => (_isSeller && (v == null || v.trim().isEmpty)) ? 'กรอกเบอร์โทรศัพท์' : null),
                     if (_isSeller) ...[
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       _label('3. ข้อมูลร้านค้า'),
                       _field(_shopName, 'ชื่อร้านค้า *', Icons.storefront_outlined,
                           validator: (v) => (v == null || v.trim().isEmpty) ? 'กรอกชื่อร้านค้า' : null),
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: EdgeInsets.only(bottom: 12),
                         child: DropdownButtonFormField<String>(
                           value: _shopCategory,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'ประเภทร้านค้า *',
                             prefixIcon: Icon(Icons.sell_outlined),
                           ),
@@ -156,28 +156,28 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       _field(_shopDesc, 'รายละเอียดร้านค้า (ไม่บังคับ)', Icons.notes_outlined),
                     ],
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     CheckboxListTile(
                       value: _agree,
                       onChanged: (v) => setState(() => _agree = v ?? false),
                       controlAffinity: ListTileControlAffinity.leading,
                       contentPadding: EdgeInsets.zero,
                       dense: true,
-                      title: const Text('ฉันยอมรับข้อกำหนดและเงื่อนไข และนโยบายความเป็นส่วนตัว',
+                      title: Text('ฉันยอมรับข้อกำหนดและเงื่อนไข และนโยบายความเป็นส่วนตัว',
                           style: TextStyle(fontSize: 13)),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: _busy ? null : _submit,
                       child: _busy
-                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
+                          ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
                           : Text(_isSeller ? 'สมัครสำหรับผู้ขาย' : 'สมัครสมาชิก'),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     Center(
                       child: TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('มีบัญชีอยู่แล้ว? เข้าสู่ระบบ'),
+                        child: Text('มีบัญชีอยู่แล้ว? เข้าสู่ระบบ'),
                       ),
                     ),
                   ],
@@ -191,8 +191,8 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Widget _label(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 10, top: 4),
-        child: Text(t, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+        padding: EdgeInsets.only(bottom: 10, top: 4),
+        child: Text(t, style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
       );
 
   Widget _field(
@@ -206,7 +206,7 @@ class _SignupScreenState extends State<SignupScreen> {
     String? Function(String?)? validator,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: c,
         obscureText: obscure,
@@ -243,7 +243,7 @@ class _RoleCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
           color: selected ? AppColors.leafSoft : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
@@ -255,17 +255,17 @@ class _RoleCard extends StatelessWidget {
         child: Row(
           children: [
             Icon(icon, color: selected ? AppColors.primary : AppColors.muted, size: 26),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                  Text(sub, style: const TextStyle(fontSize: 11.5, color: AppColors.muted)),
+                  Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                  Text(sub, style: TextStyle(fontSize: 11.5, color: AppColors.muted)),
                 ],
               ),
             ),
-            if (selected) const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+            if (selected) Icon(Icons.check_circle, color: AppColors.primary, size: 20),
           ],
         ),
       ),

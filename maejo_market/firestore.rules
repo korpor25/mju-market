@@ -2,34 +2,107 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ผู้ใช้: อ่าน/เขียนได้เฉพาะเอกสารของตัวเอง
-    match /users/{uid} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid;
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // ผู้ใช้หนึ่งคนมีได้หลายบทบาท เช่น เจ้าของตลาดที่เป็นแม่ค้าในตลาดด้วย
+    // รองรับทั้งเอกสารเก่า (ฟิลด์ role เดี่ยว) และเอกสารที่ migrate แล้ว (roles array)
+    // ต้องรับทั้งสองแบบ ไม่งั้นแอดมินที่ยังไม่ถูก migrate จะหลุดสิทธิ์ทันทีที่ deploy
+    function hasRole(r) {
+      return signedIn() && (
+        userDoc().role == r ||
+        ('roles' in userDoc() && userDoc().roles is list && r in userDoc().roles)
+      );
     }
 
     function isAdmin() {
-      return request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return hasRole('admin');
     }
 
-    // ร้านค้า: ใครก็อ่านได้ (สำหรับผู้บริโภค), เขียนได้เมื่อล็อกอิน
-    match /shops/{id} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // ผู้ใช้: อ่าน/เขียนเอกสารของตัวเอง ; admin เข้าถึงได้ทุกคน
+    match /users/{uid} {
+      allow read:   if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write:  if signedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // ร้านค้า: ใครก็อ่านได้ ; สร้างเฉพาะ admin ; แก้ไขได้ admin หรือเจ้าของร้าน
+    // ผู้ล็อกอินทั่วไปแก้ได้เฉพาะ rating/reviews (ค่าเฉลี่ยจากการรีวิว)
+    match /shops/{shopId} {
+      allow read:   if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+        (signedIn() && (request.auth.uid == shopId || resource.data.ownerUid == request.auth.uid)) ||
+        (signedIn() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'reviews']) &&
+          request.resource.data.rating is number &&
+          request.resource.data.rating >= 0 && request.resource.data.rating <= 5);
+      allow delete: if isAdmin();
+    }
+
+    // รีวิว: ใครก็อ่านได้ ; สร้างได้เฉพาะเจ้าของ uid (1..5 ดาว) ; แก้/ลบได้เจ้าของหรือ admin
+    match /reviews/{id} {
+      allow read:   if true;
+      allow create: if signedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.rating is int
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5;
+      allow update: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid)
+                    && request.resource.data.rating is int
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5;
+      allow delete: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
+    }
+
+    // สินค้า: ใครก็อ่านได้ ; จัดการได้เฉพาะเจ้าของร้าน (shopId == uid) หรือ admin
+    match /products/{id} {
+      allow read:   if true;
+      allow create: if signedIn() && (isAdmin() || request.resource.data.shopId == request.auth.uid);
+      allow update, delete: if signedIn() && (isAdmin() || resource.data.shopId == request.auth.uid);
+    }
+
+    // ยอดขาย: เจ้าของร้าน (shopId == uid) บันทึก/อ่าน/ลบของตัวเองได้ ; แอดมินเห็นทุกร้าน
+    // หมายเหตุ: การ query ฝั่งผู้ขายต้องกรอง where('shopId', isEqualTo: uid) เสมอ
+    match /sales/{id} {
+      allow read: if signedIn() && (isAdmin() || resource.data.shopId == request.auth.uid);
+      allow create: if signedIn()
+                    && (isAdmin() || request.resource.data.shopId == request.auth.uid)
+                    && request.resource.data.price is number
+                    && request.resource.data.price >= 0
+                    && request.resource.data.qty is int
+                    && request.resource.data.qty > 0;
+      allow update, delete: if signedIn() && (isAdmin() || resource.data.shopId == request.auth.uid);
     }
 
     // แผง: อ่านได้ทุกคน, แก้ไขเฉพาะแอดมิน
-    match /stalls/{id} {
-      allow read: if true;
+    // แบนเนอร์หน้าแรก: ใครก็อ่านได้ (ผู้บริโภคที่ยังไม่ล็อกอินก็เห็น) ; แก้ได้เฉพาะแอดมิน
+    match /banners/{id} {
+      allow read:  if true;
       allow write: if isAdmin();
     }
 
-    // คำขอ: ผู้ล็อกอินสร้างได้, อ่านได้; อนุมัติ/ปฏิเสธ (update) เฉพาะแอดมิน
+    match /stalls/{id} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    // คำขอ: ผู้ล็อกอินสร้าง/อ่านได้ ; อนุมัติ-ปฏิเสธ (update) เฉพาะแอดมิน
     match /requests/{id} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
+      allow read:           if signedIn();
+      allow create:         if signedIn();
       allow update, delete: if isAdmin();
+    }
+
+    // การแจ้งเตือน: เจ้าของอ่าน/อัปเดต(อ่านแล้ว)/ลบได้ ; admin สร้างให้ผู้ใช้ได้
+    match /notifications/{id} {
+      allow read:           if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
+      allow create:         if isAdmin();
+      allow update, delete: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
     }
   }
 }

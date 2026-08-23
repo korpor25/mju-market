@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "491003820474",
+    "project_id": "maejo-market",
+    "storage_bucket": "maejo-market.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:491003820474:android:41c17f2142dd8121904583",
+        "android_client_info": {
+          "package_name": "com.example.maejo_market"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBb87Kp0WfLWm7yDbFJhI9EAvXJy7MBMeQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

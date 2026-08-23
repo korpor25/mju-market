@@ -69,6 +69,17 @@ class MarketRequest {
   final String requesterName;
   final String status; // pending / approved / rejected
 
+  /// uid ของผู้ยื่นคำขอ — ใช้เช็คว่าเป็นคำขอของตัวเองไหม
+  /// (เจ้าของตลาดที่ขายเองด้วยจะได้เห็นสถานะคำขอของตัวเอง)
+  final String uid;
+
+  /// ร้านที่เกี่ยวข้องกับคำขอ (คำขอจองแผงจะระบุว่าร้านไหนขอจอง)
+  /// เดิมยัดรหัสร้านไว้ในช่อง uid ได้เพราะ 1 คน 1 ร้าน ตอนนี้ต้องแยกกัน
+  final String shopId;
+
+  /// สลิปโอนเงินที่ผู้ขายแนบมา (เฉพาะคำขอชนิดชำระเงิน)
+  final String slipUrl;
+
   const MarketRequest({
     required this.id,
     required this.type,
@@ -77,6 +88,9 @@ class MarketRequest {
     this.amount = '—',
     this.requesterName = '',
     this.status = 'pending',
+    this.uid = '',
+    this.shopId = '',
+    this.slipUrl = '',
   });
 
   bool get isPayment => type == RequestType.payment;
@@ -88,6 +102,9 @@ class MarketRequest {
         'amount': amount,
         'requesterName': requesterName,
         'status': status,
+        'uid': uid,
+        'shopId': shopId,
+        'slipUrl': slipUrl,
       };
 
   factory MarketRequest.fromMap(String id, Map<String, dynamic> m) => MarketRequest(
@@ -98,5 +115,8 @@ class MarketRequest {
         amount: (m['amount'] ?? '—') as String,
         requesterName: (m['requesterName'] ?? '') as String,
         status: (m['status'] ?? 'pending') as String,
+        uid: (m['uid'] ?? '') as String,
+        shopId: (m['shopId'] ?? '') as String,
+        slipUrl: (m['slipUrl'] ?? '') as String,
       );
 }

@@ -10,13 +10,17 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  google_fonts: ^6.2.1
   intl: ^0.19.0
+  shared_preferences: ^2.3.2
 
   # ---- Firebase (ใช้เมื่อตั้งค่าด้วย flutterfire configure แล้ว) ----
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
+
+  # ---- อัปโหลดรูปขึ้น Cloudinary (ไม่ใช้ Firebase Storage เพราะต้องเปิด Blaze) ----
+  http: ^1.2.2
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -25,3 +29,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  fonts:
+    - family: Kanit
+      fonts:
+        - asset: assets/fonts/Kanit-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Kanit-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Kanit-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Kanit-Bold.ttf
+          weight: 700

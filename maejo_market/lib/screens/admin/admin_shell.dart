@@ -3,12 +3,22 @@ import '../../models/stall.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common.dart';
+import '../../widgets/animations.dart';
 import '../../widgets/market_map.dart';
+import '../../widgets/notification_button.dart';
+import '../../widgets/change_password.dart';
+import '../../theme/theme_controller.dart';
+import '../profile_tab.dart';
 import 'approvals_tab.dart';
+import 'stalls_screen.dart';
 import 'standard_tab.dart';
+import 'users_screen.dart';
+import 'banners_screen.dart';
+import 'reviews_moderation_screen.dart';
+import 'sales_report_screen.dart';
 
 class AdminShell extends StatefulWidget {
-  const AdminShell({super.key});
+  AdminShell({super.key});
 
   @override
   State<AdminShell> createState() => _AdminShellState();
@@ -19,7 +29,16 @@ class _AdminShellState extends State<AdminShell> {
 
   @override
   Widget build(BuildContext context) {
-    final titles = ['แดชบอร์ดผู้ดูแลระบบ', 'อนุมัติคำขอ', 'แผนผังตลาด', 'ตรวจมาตรฐานร้าน'];
+    // ถูกส่งมาจากที่อื่น เช่น เพิ่งยื่นขอเปิดร้านแล้วต้องมาอนุมัติต่อ
+    final want = appState.pendingAdminTab;
+    if (want != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        appState.pendingAdminTab = null;
+        if (want != _tab) setState(() => _tab = want);
+      });
+    }
+    final titles = ['แดชบอร์ดผู้ดูแลระบบ', 'อนุมัติคำขอ', 'แผนผังตลาด', 'ตรวจมาตรฐานร้าน', 'โปรไฟล์'];
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_tab]),
@@ -30,19 +49,26 @@ class _AdminShellState extends State<AdminShell> {
             listenable: appState,
             builder: (_, __) {
               final n = appState.pendingCount;
-              if (n == 0) return const SizedBox(width: 8);
+              if (n == 0) return SizedBox(width: 8);
               return Padding(
-                padding: const EdgeInsets.only(right: 12),
+                padding: EdgeInsets.only(right: 12),
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(20)),
                     child: Text('$n รอตรวจ',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11.5)),
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11.5)),
                   ),
                 ),
               );
             },
+          ),
+          const ThemeToggleButton(),
+          NotificationButton(),
+          IconButton(
+            tooltip: 'ออกจากระบบ',
+            icon: Icon(Icons.logout_rounded),
+            onPressed: () => _confirmLogout(context),
           ),
         ],
       ),
@@ -51,11 +77,13 @@ class _AdminShellState extends State<AdminShell> {
         builder: (_, __) {
           switch (_tab) {
             case 1:
-              return const ApprovalsTab();
+              return ApprovalsTab();
             case 2:
-              return const _AdminMap();
+              return _AdminMap();
             case 3:
-              return const StandardTab();
+              return StandardTab();
+            case 4:
+              return ProfileTab();
             default:
               return _AdminDashboard(onGoApprovals: () => setState(() => _tab = 1));
           }
@@ -67,21 +95,50 @@ class _AdminShellState extends State<AdminShell> {
           selectedIndex: _tab,
           onDestinationSelected: (i) => setState(() => _tab = i),
           destinations: [
-            const NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'หน้าหลัก'),
+            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'หน้าหลัก'),
             NavigationDestination(
               icon: Badge(
                 isLabelVisible: appState.pendingCount > 0,
                 label: Text('${appState.pendingCount}'),
-                child: const Icon(Icons.inbox_outlined),
+                child: Icon(Icons.inbox_outlined),
               ),
               label: 'อนุมัติ',
             ),
-            const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'แผนผัง'),
-            const NavigationDestination(icon: Icon(Icons.verified_outlined), label: 'มาตรฐาน'),
+            NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'แผนผัง'),
+            NavigationDestination(icon: Icon(Icons.verified_outlined), label: 'มาตรฐาน'),
+            // ต้องมีโปรไฟล์ในฝั่งแอดมินด้วย ไม่งั้นเจ้าของตลาดที่เป็นแม่ค้าด้วย
+            // จะไม่มีที่สลับบทบาท
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'โปรไฟล์',
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('ออกจากระบบ'),
+        content: Text('ต้องการออกจากระบบใช่หรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.bad),
+            child: Text('ออกจากระบบ'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await appState.signOut();
   }
 }
 
@@ -94,71 +151,104 @@ class _AdminDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pending = appState.pendingCount;
     return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.35,
-          children: [
-            const KpiCard(icon: Icons.storefront_rounded, iconColor: AppColors.primary, iconBg: AppColors.leafSoft, label: 'ร้านทั้งหมด', value: '128', delta: '+6 เดือนนี้'),
-            const KpiCard(icon: Icons.people_alt_rounded, iconColor: AppColors.primaryLight, iconBg: AppColors.leafSoft, label: 'ผู้ขายทั้งหมด', value: '96', delta: '+4 สัปดาห์นี้'),
-            KpiCard(icon: Icons.pending_actions_rounded, iconColor: AppColors.accent, iconBg: AppColors.accentSoft, label: 'รอตรวจสอบ', value: '$pending', delta: null),
-            const KpiCard(icon: Icons.account_balance_wallet_rounded, iconColor: AppColors.ok, iconBg: AppColors.okSoft, label: 'ค่าเช่า/เดือน', value: '฿221K', delta: '+8.4%'),
+      padding: EdgeInsets.all(16),
+      children: staggered([
+        // งานที่แอดมินต้องลงมือทำ คือเรื่องเดียวที่สำคัญที่สุดของหน้านี้
+        HeroPanel(
+          icon: Icons.pending_actions_rounded,
+          label: 'คำขอรอตรวจสอบ',
+          value: '$pending',
+          caption: pending == 0
+              ? 'ไม่มีคำขอค้างอยู่'
+              : 'จองแผงใหม่ ${appState.newBookingCount} · สมัครเปิดร้าน ${pending - appState.newBookingCount}',
+          actions: [
+            HeroAction(
+              icon: Icons.inbox_rounded,
+              label: pending == 0 ? 'เปิดกล่องคำขอ' : 'ตรวจคำขอทั้งหมด',
+              filled: true,
+              onTap: onGoApprovals,
+            ),
           ],
         ),
-        const SectionTitle('การจองพื้นที่ (วันนี้)', icon: Icons.event_available_rounded),
-        AppCard(
-          child: Column(children: [
-            _summaryRow('จองใหม่', '12', AppColors.primary),
-            const Divider(color: AppColors.border, height: 18),
-            _summaryRow('อนุมัติแล้ว', '8', AppColors.ok),
-            const Divider(color: AppColors.border, height: 18),
-            _summaryRow('ปฏิเสธ', '2', AppColors.bad),
-          ]),
-        ),
+        SizedBox(height: 12),
+        // ตัวเลขภาพรวมอยู่ในกรอบเดียว แทนตาราง KPI 2x2 ที่ทำให้ทุกค่าดูสำคัญเท่ากัน
+        StatStrip(items: [
+          StatItem(icon: Icons.storefront_rounded, label: 'ร้านทั้งหมด', countTo: appState.shopCount),
+          StatItem(icon: Icons.people_alt_rounded, label: 'ผู้ขาย', countTo: appState.sellerCount),
+          StatItem(
+            icon: Icons.account_balance_wallet_rounded,
+            label: 'ค่าเช่า/เดือน',
+            countTo: appState.monthlyRent,
+            format: money,
+            color: AppColors.ok,
+          ),
+        ]),
+        SectionTitle('สรุปคำขอทั้งหมด', icon: Icons.event_available_rounded),
+        GroupedCard(children: [
+          _summaryRow('จองใหม่ (รออนุมัติ)', '${appState.newBookingCount}', AppColors.primary),
+          _summaryRow('อนุมัติแล้ว', '${appState.approvedCount}', AppColors.ok),
+          _summaryRow('ปฏิเสธ', '${appState.rejectedCount}', AppColors.bad),
+        ]),
         SectionTitle('คำขอรอการอนุมัติ', icon: Icons.check_circle_outline_rounded,
-            trailing: TextButton(onPressed: onGoApprovals, child: const Text('ดูทั้งหมด'))),
+            trailing: TextButton(onPressed: onGoApprovals, child: Text('ดูทั้งหมด'))),
         if (pending == 0)
-          const AppCard(child: Center(child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('ไม่มีคำขอค้างอยู่ 🎉', style: TextStyle(color: AppColors.muted)),
-          )))
+          EmptyState(
+            icon: Icons.task_alt_rounded,
+            message: 'ตรวจครบทุกคำขอแล้ว',
+          )
         else
           ...appState.pendingRequests.take(3).map((r) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: EdgeInsets.only(bottom: 10),
                 child: RequestCard(request: r),
               )),
         SectionTitle('เครื่องมือ', icon: Icons.apps_rounded),
-        Row(children: [
-          Expanded(child: _tool(context, Icons.fact_check_outlined, 'ตรวจร้านค้า')),
-          const SizedBox(width: 10),
-          Expanded(child: _tool(context, Icons.how_to_reg_outlined, 'อนุมัติการจอง')),
-          const SizedBox(width: 10),
-          Expanded(child: _tool(context, Icons.bar_chart_rounded, 'รายงาน')),
-        ]),
-      ],
+        // เครื่องมือเป็นรายการเรียงลง อ่านชื่อเต็มได้ ไม่ต้องย่อให้พอดีช่องสี่เหลี่ยม
+        GroupedCard(
+          rowPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          children: [
+            _tool(context, Icons.manage_accounts_rounded, 'จัดการผู้ใช้',
+                subtitle: 'ระงับ/เปิดใช้งาน และเปลี่ยนบทบาท',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UsersScreen()))),
+            _tool(context, Icons.grid_view_rounded, 'จัดการแผง',
+                subtitle: 'เพิ่ม/ลบแผง และตั้งราคาค่าเช่า',
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => const StallsScreen()))),
+            _tool(context, Icons.view_carousel_rounded, 'จัดการแบนเนอร์',
+                subtitle: 'รูปและข้อความโปรโมตบนหน้าแรก',
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => const BannersScreen()))),
+            _tool(context, Icons.reviews_rounded, 'จัดการรีวิว',
+                subtitle: 'ตรวจและลบรีวิวที่ไม่เหมาะสม',
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => const ReviewsModerationScreen()))),
+            _tool(context, Icons.bar_chart_rounded, 'รายงานยอดขาย',
+                subtitle: 'ยอดขายรวมและอันดับร้านขายดี',
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => const AdminSalesReportScreen()))),
+            _tool(context, Icons.lock_reset_rounded, 'เปลี่ยนรหัสผ่าน',
+                subtitle: 'รหัสผ่านบัญชีผู้ดูแลระบบ',
+                onTap: () => showChangePasswordDialog(context)),
+          ],
+        ),
+      ]),
     );
   }
 
   Widget _summaryRow(String label, String value, Color c) => Row(children: [
         Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-        const SizedBox(width: 10),
-        Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+        SizedBox(width: 10),
+        Expanded(child: Text(label, style: TextStyle(fontWeight: FontWeight.w600))),
         Text(value, style: TextStyle(fontWeight: FontWeight.w800, color: c, fontSize: 16)),
       ]);
 
-  Widget _tool(BuildContext context, IconData icon, String label) => AppCard(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        onTap: () => showSnack(context, '$label — อยู่ระหว่างพัฒนา'),
-        child: Column(children: [
-          Icon(icon, color: AppColors.primary, size: 26),
-          const SizedBox(height: 8),
-          Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
-        ]),
+  Widget _tool(BuildContext context, IconData icon, String label,
+          {String? subtitle, VoidCallback? onTap}) =>
+      AppListRow(
+        leading: IconChip(icon, color: AppColors.primary, bg: AppColors.leafSoft, size: 38),
+        title: label,
+        subtitle: subtitle,
+        trailing: Icon(Icons.chevron_right_rounded, color: AppColors.faint),
+        onTap: onTap ?? () => showSnack(context, '$label — อยู่ระหว่างพัฒนา'),
       );
 }
 
@@ -176,7 +266,7 @@ class _AdminMapState extends State<_AdminMap> {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
         AppCard(
           child: MarketMap(
@@ -186,19 +276,19 @@ class _AdminMapState extends State<_AdminMap> {
           ),
         ),
         if (_sel != null) ...[
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           AppCard(
             child: Row(children: [
               IconChip(Icons.storefront_rounded, color: AppColors.primary, bg: AppColors.leafSoft),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('แผง ${_sel!.id}${_sel!.shopName != null ? " · ${_sel!.shopName}" : ""}',
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
-                    Text(_sel!.isEmpty ? 'ยังไม่มีผู้เช่า' : 'โซน ${_sel!.zone} · ${_sel!.pricePerDay}',
-                        style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+                        style: TextStyle(fontWeight: FontWeight.w800)),
+                    Text('${_sel!.positionLabel} · ${_sel!.categoryLabel} · ฿${_sel!.pricePerDay}/วัน',
+                        style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
                   ],
                 ),
               ),

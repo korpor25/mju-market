@@ -1,0 +1,13 @@
+{
+  "name": "maejo-seed",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "seed": "node seed.js",
+    "migrate-roles": "node migrate-roles.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

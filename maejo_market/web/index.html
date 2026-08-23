@@ -24,20 +24,93 @@
       position:fixed; inset:0; display:flex; flex-direction:column;
       align-items:center; justify-content:center; gap:14px;
       background:#2E7D32; color:#fff; font-family:sans-serif;
+      transition:opacity .35s ease;
     }
+    #splash.hide { opacity:0; pointer-events:none; }
     #splash .logo { font-size:26px; font-weight:800; letter-spacing:.5px; }
     #splash .sub { font-size:14px; opacity:.85; }
-    .spin { width:34px; height:34px; border:3px solid rgba(255,255,255,.3);
-      border-top-color:#fff; border-radius:50%; animation:sp 1s linear infinite; }
-    @keyframes sp { to { transform:rotate(360deg); } }
+    /* หลอดโหลด % จริง */
+    #bar-track {
+      width:220px; max-width:70vw; height:6px; border-radius:99px;
+      background:rgba(255,255,255,.25); overflow:hidden; margin-top:4px;
+    }
+    #bar-fill {
+      width:0%; height:100%; border-radius:99px; background:#fff;
+      transition:width .25s ease;
+    }
+    #bar-pct { font-size:13px; font-weight:700; opacity:.95; min-height:16px; }
   </style>
 </head>
 <body>
   <div id="splash">
-    <div class="logo">🌿 Maejo Market</div>
+    <svg class="logo-icon" viewBox="0 0 24 24" width="46" height="46" fill="#fff" aria-hidden="true">
+      <path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/>
+    </svg>
+    <div class="logo">Maejo Market</div>
     <div class="sub">ตลาดแม่โจ้ · กำลังโหลด…</div>
-    <div class="spin"></div>
+    <div id="bar-track"><div id="bar-fill"></div></div>
+    <div id="bar-pct">0%</div>
   </div>
+
+  <!-- ติดตามความคืบหน้าการโหลดจริง (ไบต์ที่ดาวน์โหลด) ต้องวางก่อน flutter_bootstrap.js -->
+  <script>
+    (function () {
+      var fillEl = document.getElementById('bar-fill');
+      var pctEl  = document.getElementById('bar-pct');
+      var splash = document.getElementById('splash');
+      var loaded = 0, total = 0, shown = 0, done = false;
+
+      function render() {
+        if (done) return;
+        var pct = total > 0 ? (loaded / total) * 100 : 0;
+        // เดินหน้าอย่างเดียว และค้างไว้ที่ 99% จนกว่าแอปจะพร้อมจริง
+        if (pct > shown) shown = pct;
+        var capped = Math.min(shown, 99);
+        fillEl.style.width = capped + '%';
+        pctEl.textContent = Math.round(capped) + '%';
+      }
+
+      function finish() {
+        if (done) return;
+        done = true;
+        fillEl.style.width = '100%';
+        pctEl.textContent = '100%';
+        splash.classList.add('hide');
+        setTimeout(function () { if (splash && splash.parentNode) splash.parentNode.removeChild(splash); }, 400);
+      }
+
+      // อ่านความคืบหน้าจาก "สำเนา" ของ response แล้วส่งตัวจริงคืน Flutter แบบไม่แตะต้อง
+      // (สำคัญมากสำหรับ canvaskit.wasm — ห้ามไปยุ่งกับ body ที่ instantiateStreaming ใช้)
+      var _fetch = window.fetch.bind(window);
+      window.fetch = function (input, init) {
+        return _fetch(input, init).then(function (res) {
+          try {
+            if (done) return res;
+            var len = parseInt(res.headers.get('content-length') || '0', 10);
+            if (!len || !res.body) return res;
+            total += len;
+            render();
+            var reader = res.clone().body.getReader();
+            (function pump() {
+              reader.read().then(function (r) {
+                if (r.done || done) return;
+                loaded += r.value.byteLength;
+                render();
+                pump();
+              }).catch(function () {});
+            })();
+          } catch (e) { /* เงียบไว้ ไม่ให้กระทบการโหลดแอป */ }
+          return res; // ส่ง response ตัวจริงคืนเสมอ
+        });
+      };
+
+      // สัญญาณ "แอปวาดเฟรมแรกจริง" = พร้อมแล้ว ค่อยปิด splash
+      // (ห้ามใช้แค่การมี <flutter-view> เพราะ engine สร้างมันก่อนแอปวาด → ปิดเร็วไปจะเห็นจอเขียวเปล่า)
+      window.addEventListener('flutter-first-frame', finish);
+      // กันเหนียว: ถ้า event ไม่ยิงด้วยเหตุใด ให้ปิดหลัง 20 วิ
+      setTimeout(finish, 20000);
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
