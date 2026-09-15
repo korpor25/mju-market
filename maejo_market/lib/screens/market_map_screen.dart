@@ -54,7 +54,6 @@ class _MarketMapScreenState extends State<MarketMapScreen> {
             child: MarketMap(
               stalls: appState.stalls,
               selectedId: _sel?.id,
-              grouping: MapGrouping.category,
               onTap: (s) => setState(() => _sel = s),
             ),
           ),

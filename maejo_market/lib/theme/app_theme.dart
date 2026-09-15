@@ -38,15 +38,18 @@ class AppTheme {
         bodyColor: AppColors.text,
         displayColor: AppColors.text,
       ),
+      // หัวหน้าจอแบบ "เนื้อหามาก่อน" — พื้นเดียวกับหน้า ไม่มีแถบสีทึบ
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.bg,
+        foregroundColor: AppColors.text,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
         titleTextStyle: _kanit(
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: AppColors.text,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -60,13 +63,14 @@ class AppTheme {
         errorBorder: _inputBorder(AppColors.bad),
         focusedErrorBorder: _inputBorder(AppColors.bad, width: 1.6),
       ),
+      // ปุ่มทรงแคปซูลทั้งแอป (ให้เข้าชุดกับปุ่มกลม/ชิปลอยในชุด shop_ui)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           minimumSize: Size.fromHeight(52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: const StadiumBorder(),
           textStyle: _kanit(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
@@ -75,12 +79,21 @@ class AppTheme {
           foregroundColor: AppColors.primary,
           minimumSize: Size.fromHeight(52),
           side: BorderSide(color: AppColors.primary, width: 1.4),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: const StadiumBorder(),
           textStyle: _kanit(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          shape: const StadiumBorder(),
+          textStyle: _kanit(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
         labelStyle: _kanit(fontSize: 13, fontWeight: FontWeight.w600),
+        shape: const StadiumBorder(),
+        side: BorderSide(color: AppColors.border),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 66,
@@ -114,7 +127,7 @@ class AppTheme {
 
   static OutlineInputBorder _inputBorder(Color c, {double width = 1}) {
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(18),
       borderSide: BorderSide(color: c, width: width),
     );
   }

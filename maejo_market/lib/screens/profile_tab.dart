@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import '../app_config.dart';
 import '../models/app_user.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/change_password.dart';
+import '../widgets/shop_ui.dart';
+import '../widgets/line_link.dart';
 import 'favorites_screen.dart';
 
 /// หน้าโปรไฟล์/บัญชี (ใช้ร่วมกันทุกบทบาท)
@@ -25,15 +28,18 @@ class ProfileTab extends StatelessWidget {
     ];
 
     return ListView(
-      padding: EdgeInsets.all(16),
+      // เผื่อที่ให้แถบเมนูแคปซูลที่ลอยทับเนื้อหาอยู่ด้านล่าง
+      padding: EdgeInsets.fromLTRB(16, 12, 16, navBarInset(context)),
       children: [
+        PageHeading('บัญชีของฉัน'),
+        SizedBox(height: 14),
         AppCard(
           child: Column(
             children: [
               Row(children: [
                 Container(
                   width: 64, height: 64,
-                  decoration: BoxDecoration(gradient: brandGradient, borderRadius: BorderRadius.circular(18)),
+                  decoration: BoxDecoration(gradient: brandGradient, shape: BoxShape.circle),
                   child: Icon(Icons.person_rounded, color: Colors.white, size: 32),
                 ),
                 SizedBox(width: 14),
@@ -90,6 +96,12 @@ class ProfileTab extends StatelessWidget {
               ],
             ),
           ),
+        ],
+        // แจ้งเตือนผ่าน LINE — ไม่แสดงในมุมมองแอดมิน เพราะแอดมินเป็นคนส่งแจ้งเตือน ไม่มีอะไรส่งหาแอดมิน
+        // (บัญชีหลายบทบาทสลับไปมุมมองผู้ขาย/ผู้ซื้อแล้วเชื่อมได้ตามปกติ)
+        if (AppConfig.lineReady && u.role != UserRole.admin) ...[
+          SizedBox(height: 14),
+          LineConnectCard(),
         ],
         SizedBox(height: 14),
         AppCard(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/demo_data.dart';
+import '../../data/market_layout.dart';
 import '../../models/stall.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
@@ -18,7 +19,16 @@ class _StallsScreenState extends State<StallsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('จัดการแผง')),
+      appBar: AppBar(
+        title: const Text('จัดการแผง'),
+        actions: [
+          IconButton(
+            tooltip: 'สร้างแผงตามผังตลาด',
+            icon: const Icon(Icons.auto_awesome_motion_rounded),
+            onPressed: _seedFromLayout,
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _edit(null),
         icon: const Icon(Icons.add_rounded),
@@ -60,6 +70,10 @@ class _StallsScreenState extends State<StallsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
               _summary(all),
+              if (_missingSlots.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _missingBanner(_missingSlots.length),
+              ],
               const SizedBox(height: 8),
               for (final z in zones) ...[
                 SectionTitle('โซน $z', icon: Icons.grid_view_rounded),
@@ -72,6 +86,78 @@ class _StallsScreenState extends State<StallsScreen> {
           );
         },
       ),
+    );
+  }
+
+  /// ช่องบนผังที่ยังไม่มีแผงจริงในระบบ
+  List<StallSlot> get _missingSlots {
+    final have = appState.stalls.map((s) => s.id).toSet();
+    return MarketLayout.slots.where((s) => !have.contains(s.id)).toList();
+  }
+
+  /// สร้างแผงที่ยังขาดให้ครบตามผังตลาด (ใช้ตอนย้ายมาใช้ผังใหม่)
+  Future<void> _seedFromLayout() async {
+    final missing = _missingSlots;
+    if (missing.isEmpty) {
+      showSnack(context, 'แผงครบตามผังตลาดแล้ว');
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('สร้างแผงตามผังตลาด'),
+        content: Text(
+            'ผังตลาดมี ${MarketLayout.slots.length} แผง '
+            'แต่ในระบบยังขาดอยู่ ${missing.length} แผง\n\n'
+            'สร้างแผงที่ขาดทั้งหมด (สถานะว่าง พร้อมค่าเช่าเริ่มต้นตามย่าน) เลยไหม?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('ยกเลิก')),
+          ElevatedButton(onPressed: () => Navigator.pop(c, true), child: const Text('สร้างเลย')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    var fail = 0;
+    for (final slot in missing) {
+      final sec = MarketLayout.sectionOf(slot.sectionId);
+      final err = await appState.saveStall(
+        Stall(
+          id: slot.id,
+          zone: slot.id.split('-').first,
+          category: MarketLayout.appCategoryOf(slot.sectionId),
+          pricePerDay: sec.pricePerDay,
+        ),
+        isNew: true,
+      );
+      if (err != null) fail++;
+    }
+    if (!mounted) return;
+    showSnack(
+      context,
+      fail == 0
+          ? 'สร้างแผงตามผังครบแล้ว ${missing.length} แผง'
+          : 'สร้างได้ ${missing.length - fail} แผง · ไม่สำเร็จ $fail แผง',
+      bad: fail > 0,
+    );
+  }
+
+  Widget _missingBanner(int n) {
+    return AppCard(
+      onTap: _seedFromLayout,
+      child: Row(children: [
+        Icon(Icons.grid_view_rounded, color: AppColors.warn),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('ยังไม่ครบตามผังตลาด',
+                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.text)),
+            Text('ขาดอีก $n แผง — แตะเพื่อสร้างให้ครบ',
+                style: TextStyle(fontSize: 12.5, color: AppColors.muted)),
+          ]),
+        ),
+        Icon(Icons.chevron_right_rounded, color: AppColors.faint),
+      ]),
     );
   }
 

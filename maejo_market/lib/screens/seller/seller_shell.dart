@@ -10,9 +10,11 @@ import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common.dart';
 import '../../widgets/image_field.dart';
+import '../../widgets/line_link.dart';
 import '../../widgets/animations.dart';
 import '../../widgets/market_map.dart';
 import '../../widgets/notification_button.dart';
+import '../../widgets/shop_ui.dart';
 import '../../theme/theme_controller.dart';
 import '../profile_tab.dart';
 import 'shop_edit_screen.dart';
@@ -53,22 +55,26 @@ class _SellerShellState extends State<SellerShell> {
       ProfileTab(),
     ];
     final titles = ['Dashboard ผู้ขาย', 'จัดการร้านค้า', 'รายงานยอดขาย', 'จองพื้นที่ขาย', 'บัญชีของฉัน'];
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(titles[_tab]),
-        automaticallyImplyLeading: false,
-        actions: const [ThemeToggleButton(), NotificationButton()],
+    return FloatingNavScaffold(
+      // หน้าฝั่งผู้ขายยังเป็น list ธรรมดา จึงให้แถบเมนูกินพื้นที่ล่างตามปกติ
+      floatOverContent: false,
+      body: Scaffold(
+        appBar: AppBar(
+          title: Text(titles[_tab]),
+          automaticallyImplyLeading: false,
+          actions: const [ThemeToggleButton(), NotificationButton()],
+        ),
+        body: pages[_tab],
       ),
-      body: pages[_tab],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'หน้าหลัก'),
-          NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'จัดการร้าน'),
-          NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart_rounded), label: 'ยอดขาย'),
-          NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'จองพื้นที่'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person_rounded), label: 'บัญชี'),
+      navBar: FloatingNavBar(
+        index: _tab,
+        onChanged: (i) => setState(() => _tab = i),
+        items: const [
+          NavItem(Icons.dashboard_outlined, 'หน้าหลัก', activeIcon: Icons.dashboard_rounded),
+          NavItem(Icons.storefront_outlined, 'จัดการร้าน', activeIcon: Icons.storefront_rounded),
+          NavItem(Icons.bar_chart_outlined, 'ยอดขาย', activeIcon: Icons.bar_chart_rounded),
+          NavItem(Icons.grid_view_outlined, 'จองพื้นที่', activeIcon: Icons.grid_view_rounded),
+          NavItem(Icons.person_outline, 'บัญชี', activeIcon: Icons.person_rounded),
         ],
       ),
     );
@@ -575,13 +581,9 @@ class _BookSpaceState extends State<_BookSpace> {
                   selectedId: _sel?.id,
                   // ค่าเช่าไม่เท่ากันทุกแผง ผู้ขายต้องเห็นราคาก่อนเลือก
                   showPrice: true,
-                  onTap: (s) {
-                    if (!s.isBookable) {
-                      showSnack(context, 'แผง ${s.id} ไม่ว่าง — เลือกแผงสีเทา (ว่าง)', bad: true);
-                      return;
-                    }
-                    setState(() => _sel = s);
-                  },
+                  // แผงไม่ว่างขึ้นกุญแจและกดไม่ได้เลย ไม่ต้องเด้งเตือนทีหลัง
+                  canTap: (s) => s.isBookable,
+                  onTap: (s) => setState(() => _sel = s),
                 ),
               ),
               if (_sel != null) ...[
@@ -655,8 +657,14 @@ Future<void> showApplyForShopDialog(BuildContext context) async {
       padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
       child: StatefulBuilder(
         builder: (_, setSheet) {
+          // ต้องเชื่อม LINE ก่อน — ผลอนุมัติร้านแจ้งเข้าไลน์ ถ้ายื่นก่อนเชื่อม
+          // แอดมินอาจอนุมัติไปแล้วแจ้งเตือนไม่ถึง (แอดมินอนุมัติให้ตัวเองได้ จึงยกเว้น)
+          final me = appState.user;
+          final needLine = AppConfig.lineReady && me != null && !me.can(UserRole.admin);
+          final lineOk = !needLine || me.lineLinked;
           // ต้องกรอกครบและติ๊กยอมรับเงื่อนไขก่อนจึงส่งได้
-          final ready = nameC.text.trim().isNotEmpty &&
+          final ready = lineOk &&
+              nameC.text.trim().isNotEmpty &&
               ownerC.text.trim().isNotEmpty &&
               phoneC.text.trim().isNotEmpty &&
               accepted;
@@ -701,6 +709,62 @@ Future<void> showApplyForShopDialog(BuildContext context) async {
                     shrinkWrap: true,
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                     children: [
+                      if (needLine) ...[
+                        _formLabel('เชื่อมต่อ LINE (ต้องทำก่อน)'),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: lineOk ? AppColors.leafSoft : AppColors.warnSoft,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: (lineOk ? AppColors.primary : AppColors.warn)
+                                    .withValues(alpha: 0.4)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                Icon(
+                                    lineOk
+                                        ? Icons.check_circle_rounded
+                                        : Icons.chat_bubble_rounded,
+                                    size: 20,
+                                    color: lineOk ? AppColors.primary : AppColors.warn),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                      lineOk ? 'เชื่อม LINE แล้ว' : 'ยังไม่ได้เชื่อม LINE',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          color: lineOk ? AppColors.primary : AppColors.warn)),
+                                ),
+                              ]),
+                              const SizedBox(height: 4),
+                              Text(
+                                  lineOk
+                                      ? 'ผลการอนุมัติร้านจะแจ้งเข้าไลน์ของคุณ'
+                                      : 'ผลการอนุมัติร้านจะแจ้งเข้าไลน์ จึงต้องเชื่อมก่อนส่งคำขอ',
+                                  style: TextStyle(fontSize: 12.5, color: AppColors.muted)),
+                              if (!lineOk) ...[
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () async {
+                                      await showLineLinkDialog(sheetContext);
+                                      // หน้าต่างเชื่อมอัปเดต appState.user แล้ว วาดใหม่ให้ปลดล็อกปุ่มส่ง
+                                      setSheet(() {});
+                                    },
+                                    icon: const Icon(Icons.add_link_rounded, size: 18),
+                                    label: const Text('เชื่อมต่อ LINE'),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                      ],
                       _formLabel('ข้อมูลร้าน'),
                       TextField(
                         controller: nameC,
@@ -794,13 +858,18 @@ Future<void> showApplyForShopDialog(BuildContext context) async {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      CheckboxListTile(
-                        value: accepted,
-                        onChanged: (v) => setSheet(() => accepted = v ?? false),
-                        controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('ยอมรับเงื่อนไขการเช่าแผงข้างต้น',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      // ListTile วาดเอฟเฟกต์กดลงบน Material ที่ใกล้ที่สุด แต่แผ่นฟอร์มเป็น
+                      // Container ที่มีสีพื้น จึงบังเอฟเฟกต์ (Flutter เตือนเป็น error ทุกครั้งที่เปิด)
+                      Material(
+                        type: MaterialType.transparency,
+                        child: CheckboxListTile(
+                          value: accepted,
+                          onChanged: (v) => setSheet(() => accepted = v ?? false),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('ยอมรับเงื่อนไขการเช่าแผงข้างต้น',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
                       ),
                     ],
                   ),

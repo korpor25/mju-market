@@ -3,6 +3,7 @@ import '../models/app_notification.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import 'common.dart';
+import 'shop_ui.dart';
 
 /// ปุ่มกระดิ่ง + ป้ายจำนวนที่ยังไม่อ่าน → เปิดรายการแจ้งเตือน
 class NotificationButton extends StatelessWidget {
@@ -21,24 +22,58 @@ class NotificationButton extends StatelessWidget {
             label: Text('$n'),
             child: Icon(Icons.notifications_none_rounded),
           ),
-          onPressed: () => _open(context),
+          onPressed: () => openNotifications(context),
         );
       },
     );
   }
+}
 
-  Future<void> _open(BuildContext context) async {
-    await appState.refreshNotifications();
-    if (!context.mounted) return;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _NotifSheet(),
+/// ปุ่มกระดิ่งแบบกลมลอย — ใช้บน header รูปภาพ (ไม่มี AppBar)
+class NotificationCircleButton extends StatelessWidget {
+  const NotificationCircleButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: appState,
+      builder: (context, _) {
+        final n = appState.unreadCount;
+        return CircleIconButton(
+          Icons.notifications_none_rounded,
+          tooltip: 'การแจ้งเตือน',
+          onTap: () => openNotifications(context),
+          badge: n == 0
+              ? null
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: AppColors.bad,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.surface, width: 1.5),
+                  ),
+                  child: Text('$n',
+                      style: const TextStyle(
+                          color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                ),
+        );
+      },
     );
-    // เปิดดูแล้ว = อ่านทั้งหมด
-    await appState.markAllNotificationsRead();
   }
+}
+
+/// เปิดแผ่นรายการแจ้งเตือน แล้วทำเครื่องหมายว่าอ่านทั้งหมด
+Future<void> openNotifications(BuildContext context) async {
+  await appState.refreshNotifications();
+  if (!context.mounted) return;
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _NotifSheet(),
+  );
+  // เปิดดูแล้ว = อ่านทั้งหมด
+  await appState.markAllNotificationsRead();
 }
 
 class _NotifSheet extends StatelessWidget {

@@ -9,9 +9,9 @@
 
   <!-- PWA: เพิ่มลงหน้าจอโฮมได้เหมือนแอปจริง -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Maejo Market">
-  <meta name="theme-color" content="#2E7D32">
+  <meta name="theme-color" content="#F2FBF5">
 
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <link rel="icon" type="image/png" href="favicon.png"/>
@@ -19,33 +19,109 @@
 
   <title>Maejo Market · ตลาดแม่โจ้</title>
   <style>
-    body { background:#2E7D32; margin:0; }
+    /* ตัวโหลดนี้ต้องหน้าตาต่อเนื่องกับหน้า splash ในแอป (widgets/aurora.dart)
+       คือพื้นโฮโลแกรมพาสเทล + ริ้วแสงขาว ไม่งั้นตอนแอปโหลดเสร็จจะเห็นสีกระโดด */
+    :root {
+      /* เขียวล้วน ไล่จากอ่อนมากไปเข้มขึ้น — ชุดเดียวกับ widgets/aurora.dart */
+      --g-pale:#DFF6E8; --g-soft:#CBF0DC; --g-mint:#ACE7C6;
+      --g-leaf:#BDEBCF; --g-mid:#93DDB2;  --g-deep:#74CE9B;
+      --ink:#1B5E20; --ink-soft:#4E7B57;
+    }
+    html, body { margin:0; height:100%; background:#F2FBF5; }
+
     #splash {
-      position:fixed; inset:0; display:flex; flex-direction:column;
-      align-items:center; justify-content:center; gap:14px;
-      background:#2E7D32; color:#fff; font-family:sans-serif;
+      position:fixed; inset:0; overflow:hidden;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+      color:var(--ink); font-family:'Segoe UI', Roboto, system-ui, sans-serif;
+      background:linear-gradient(135deg,#F2FBF5 0%,#E6F7EC 38%,#DAF2E4 72%,#CFEEDC 100%);
       transition:opacity .35s ease;
     }
     #splash.hide { opacity:0; pointer-events:none; }
-    #splash .logo { font-size:26px; font-weight:800; letter-spacing:.5px; }
-    #splash .sub { font-size:14px; opacity:.85; }
+
+    /* ก้อนสีสองชั้น เบลอหนัก ๆ แล้วเลื่อนช้า ๆ = mesh gradient แบบเดียวกับในแอป */
+    #splash::before, #splash::after {
+      content:''; position:absolute; inset:-28%; pointer-events:none;
+    }
+    #splash::before {
+      background:
+        radial-gradient(38% 30% at 22% 24%, var(--g-mint) 0%, rgba(172,231,198,0) 72%),
+        radial-gradient(34% 28% at 78% 16%, var(--g-pale) 0%, rgba(223,246,232,0) 72%),
+        radial-gradient(42% 34% at 10% 64%, var(--g-leaf) 0%, rgba(189,235,207,0) 72%);
+      filter:blur(42px);
+      animation:driftA 30s ease-in-out infinite alternate;
+    }
+    #splash::after {
+      background:
+        radial-gradient(40% 32% at 74% 54%, var(--g-mid)  0%, rgba(147,221,178,0) 72%),
+        radial-gradient(36% 30% at 88% 86%, var(--g-deep) 0%, rgba(116,206,155,0) 72%),
+        radial-gradient(30% 24% at 44% 84%, var(--g-soft) 0%, rgba(203,240,220,0) 72%);
+      filter:blur(48px);
+      animation:driftB 36s ease-in-out infinite alternate;
+    }
+    /* ริ้วแสงขาวพาดเฉียง = รอยพับของผ้าไหม */
+    .silk { position:absolute; left:-25%; right:-25%; pointer-events:none; filter:blur(38px); }
+    .silk.a { top:26%; height:22vh; transform:rotate(-9deg);
+      background:linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.85) 46%, rgba(255,255,255,0) 100%);
+      animation:silkA 24s ease-in-out infinite alternate; }
+    .silk.b { top:62%; height:17vh; transform:rotate(6deg);
+      background:linear-gradient(80deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.7) 52%, rgba(255,255,255,0) 100%);
+      animation:silkB 28s ease-in-out infinite alternate; }
+
+    @keyframes driftA {
+      from { transform:translate3d(-3%,-2%,0) scale(1);    }
+      to   { transform:translate3d(4%,3%,0)  scale(1.12); }
+    }
+    @keyframes driftB {
+      from { transform:translate3d(3%,2%,0)  scale(1.08); }
+      to   { transform:translate3d(-4%,-3%,0) scale(1);   }
+    }
+    @keyframes silkA {
+      from { transform:rotate(-9deg) translateY(-6vh); }
+      to   { transform:rotate(-4deg) translateY(7vh);  }
+    }
+    @keyframes silkB {
+      from { transform:rotate(6deg)  translateY(5vh);  }
+      to   { transform:rotate(1deg)  translateY(-6vh); }
+    }
+
+    /* เนื้อหาต้องลอยเหนือชั้นพื้นหลัง */
+    #splash > *:not(.silk) { position:relative; z-index:1; }
+
+    /* ขนาดเท่าโลโก้ใน splash_view.dart (150) ไม่งั้นตอนสลับเข้าแอปจะเห็นโลโก้กระโดด */
+    .mark {
+      width:150px; height:150px; display:block;
+      filter:drop-shadow(0 10px 18px rgba(27,94,32,.22));
+      animation:pop .7s cubic-bezier(.2,.9,.3,1.2) both;
+    }
+    @keyframes pop { from { transform:scale(.82); opacity:0 } to { transform:scale(1); opacity:1 } }
+
+    #splash .logo { font-size:28px; font-weight:800; letter-spacing:-.3px; }
+    #splash .sub  { font-size:14px; color:var(--ink-soft); }
+
     /* หลอดโหลด % จริง */
     #bar-track {
       width:220px; max-width:70vw; height:6px; border-radius:99px;
-      background:rgba(255,255,255,.25); overflow:hidden; margin-top:4px;
+      background:rgba(27,94,32,.15); overflow:hidden; margin-top:4px;
     }
     #bar-fill {
-      width:0%; height:100%; border-radius:99px; background:#fff;
+      width:0%; height:100%; border-radius:99px;
+      background:linear-gradient(90deg,#66BB6A,#2E7D32);
       transition:width .25s ease;
     }
-    #bar-pct { font-size:13px; font-weight:700; opacity:.95; min-height:16px; }
+    #bar-pct { font-size:13px; font-weight:700; color:var(--ink-soft); min-height:16px; }
+
+    /* เครื่องที่ตั้งค่า "ลดการเคลื่อนไหว" ไม่ต้องขยับพื้นหลัง */
+    @media (prefers-reduced-motion: reduce) {
+      #splash::before, #splash::after, .silk, .mark { animation:none !important; }
+    }
   </style>
 </head>
 <body>
   <div id="splash">
-    <svg class="logo-icon" viewBox="0 0 24 24" width="46" height="46" fill="#fff" aria-hidden="true">
-      <path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/>
-    </svg>
+    <div class="silk a"></div>
+    <div class="silk b"></div>
+    <img class="mark" src="icons/Icon-512.png" width="150" height="150" alt="ตลาดสดแม่โจ้">
+
     <div class="logo">Maejo Market</div>
     <div class="sub">ตลาดแม่โจ้ · กำลังโหลด…</div>
     <div id="bar-track"><div id="bar-fill"></div></div>
@@ -105,7 +181,7 @@
       };
 
       // สัญญาณ "แอปวาดเฟรมแรกจริง" = พร้อมแล้ว ค่อยปิด splash
-      // (ห้ามใช้แค่การมี <flutter-view> เพราะ engine สร้างมันก่อนแอปวาด → ปิดเร็วไปจะเห็นจอเขียวเปล่า)
+      // (ห้ามใช้แค่การมี <flutter-view> เพราะ engine สร้างมันก่อนแอปวาด → ปิดเร็วไปจะเห็นจอเปล่า)
       window.addEventListener('flutter-first-frame', finish);
       // กันเหนียว: ถ้า event ไม่ยิงด้วยเหตุใด ให้ปิดหลัง 20 วิ
       setTimeout(finish, 20000);

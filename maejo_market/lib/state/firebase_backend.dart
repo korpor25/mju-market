@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -12,6 +16,8 @@ import '../models/promo_banner.dart';
 import '../models/app_notification.dart';
 import '../models/review.dart';
 import '../models/sale.dart';
+import '../services/line_push.dart';
+import '../app_config.dart';
 
 /// เลเยอร์เชื่อมต่อ Firebase (ใช้เมื่อ AppConfig.useFirebase = true)
 class FirebaseBackend {
@@ -66,7 +72,9 @@ class FirebaseBackend {
       final uid = cred.user!.uid;
       final appUser = AppUser(
         uid: uid, name: name, email: email, phone: phone, role: role,
-        status: role == UserRole.seller ? 'pending' : 'active',
+        // ผู้ขายสมัครใหม่ยังไม่มีคำขอเปิดร้าน จึงไม่ใช่ "รออนุมัติ" — สถานะรออนุมัติ
+        // มาจากคำขอที่ยื่นทีหลัง (หลังเชื่อม LINE) ถ้าตั้ง pending หน้าขอเปิดร้านจะไม่เด้ง
+        status: 'active',
       );
       await _db.collection('users').doc(uid).set(appUser.toMap());
 
@@ -448,12 +456,61 @@ class FirebaseBackend {
 
   Future<void> _notify(String? uid, String title, String body) async {
     if (uid == null || uid.isEmpty) return;
-    await _db.collection('notifications').add({
-      'uid': uid,
-      'title': title,
-      'body': body,
-      'read': false,
-      'createdAt': FieldValue.serverTimestamp(),
+    try {
+      final ref = await _db.collection('notifications').add({
+        'uid': uid,
+        'title': title,
+        'body': body,
+        'read': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      // ส่งต่อเข้า LINE โดยไม่รอผล — ตัวกลางล่มไม่ควรทำให้การอนุมัติ/ยืนยันค้าง
+      unawaited(pushNotificationToLine(ref.id));
+    } catch (e) {
+      // กฎ Firestore ยอมให้แอดมินเท่านั้นที่สร้างแจ้งเตือน (กันคนยิงข้อความมั่ว
+      // เข้าไลน์ในนามตลาด) ผู้ใช้ทั่วไปจึงสร้างไม่ผ่าน เช่นตอนรีวิวร้าน
+      // งานหลักต้องไม่ล้มตามไปด้วย — รีวิวบันทึกไปแล้ว แค่ไม่มีแจ้งเตือน
+      debugPrint('_notify failed: $e');
+    }
+  }
+
+  // ---------------- LINE ----------------
+
+  /// สร้างรหัสผูกบัญชี LINE ให้ผู้ใช้เอาไปพิมพ์ในแชต OA
+  ///
+  /// รหัสเป็น "รหัสเอกสาร" ใน lineLinks เอง กฎ Firestore จึงกันการเขียนทับ
+  /// รหัสที่คนอื่นถืออยู่ได้ (create ผ่านได้เฉพาะตอนยังไม่มีเอกสารนั้น)
+  /// ถ้าชนกันก็แค่สุ่มใหม่
+  Future<String> createLineLinkCode(String uid) async {
+    // ตัดตัวที่อ่านสับสน (0/O, 1/I) ออก เพราะผู้ใช้ต้องพิมพ์เองในแชต
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final rnd = Random.secure();
+
+    for (var attempt = 0; attempt < 5; attempt++) {
+      final code =
+          List.generate(6, (_) => alphabet[rnd.nextInt(alphabet.length)]).join();
+      try {
+        await _db.collection('lineLinks').doc(code).set({
+          'uid': uid,
+          'createdAt': FieldValue.serverTimestamp(),
+          'expiresAt':
+              DateTime.now().add(AppConfig.lineLinkCodeTtl).millisecondsSinceEpoch,
+        });
+        return code;
+      } on FirebaseException catch (e) {
+        // permission-denied = รหัสนี้มีคนถืออยู่ (กฎยอมให้ create เท่านั้น)
+        if (e.code != 'permission-denied') rethrow;
+      }
+    }
+    throw Exception('สร้างรหัสไม่สำเร็จ ลองใหม่อีกครั้ง');
+  }
+
+  /// ยกเลิกการผูกไลน์จากฝั่งแอป (อีกทางคือพิมพ์ "ยกเลิก" ในแชต OA)
+  Future<void> unlinkLine(String uid) async {
+    await _db.collection('users').doc(uid).update({
+      'lineUserId': FieldValue.delete(),
+      'lineDisplayName': FieldValue.delete(),
+      'lineLinkedAt': FieldValue.delete(),
     });
   }
 

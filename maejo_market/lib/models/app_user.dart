@@ -69,6 +69,14 @@ class AppUser {
   /// รหัสร้านที่ผู้ใช้ติดตาม (รายการโปรด)
   final List<String> favorites;
 
+  /// บัญชี LINE ที่ผูกไว้สำหรับรับแจ้งเตือน (null = ยังไม่ได้ผูก)
+  /// ฟิลด์นี้ "เขียนโดยตัวกลางฝั่งเซิร์ฟเวอร์" ตอนผู้ใช้ส่งรหัสในแชต OA
+  /// แอปแค่อ่านและสั่งยกเลิกได้ ไม่มีทางกำหนด lineUserId เองจากในแอป
+  final String? lineUserId;
+
+  /// ชื่อโปรไฟล์ไลน์ที่ผูกไว้ — ใช้แสดงให้ผู้ใช้ยืนยันว่าผูกถูกบัญชี
+  final String? lineDisplayName;
+
   const AppUser({
     required this.uid,
     required this.name,
@@ -79,9 +87,14 @@ class AppUser {
     this.status = 'active',
     this.shopId,
     this.favorites = const [],
+    this.lineUserId,
+    this.lineDisplayName,
   });
 
   bool get isPending => status == 'pending';
+
+  /// ผูกบัญชี LINE ไว้แล้วหรือยัง
+  bool get lineLinked => (lineUserId ?? '').isNotEmpty;
 
   /// บทบาททั้งหมดแบบใช้งานจริง — เผื่อเอกสารเก่าที่ยังไม่มีฟิลด์ roles
   List<UserRole> get allRoles => roles.isEmpty ? [role] : roles;
@@ -102,6 +115,9 @@ class AppUser {
     List<String>? favorites,
     UserRole? role,
     List<UserRole>? roles,
+    String? lineUserId,
+    String? lineDisplayName,
+    bool clearLine = false,
   }) {
     return AppUser(
       uid: uid,
@@ -113,6 +129,8 @@ class AppUser {
       status: status ?? this.status,
       shopId: shopId ?? this.shopId,
       favorites: favorites ?? this.favorites,
+      lineUserId: clearLine ? null : (lineUserId ?? this.lineUserId),
+      lineDisplayName: clearLine ? null : (lineDisplayName ?? this.lineDisplayName),
     );
   }
 
@@ -127,6 +145,10 @@ class AppUser {
         'status': status,
         'shopId': shopId,
         'favorites': favorites,
+        // ใส่คีย์เฉพาะเมื่อมีค่า — toMap ถูกใช้กับ set() ถ้าเขียน null ทับ
+        // จะลบการผูกไลน์ที่ตัวกลางเขียนไว้ทิ้งโดยไม่ตั้งใจ
+        if ((lineUserId ?? '').isNotEmpty) 'lineUserId': lineUserId,
+        if ((lineDisplayName ?? '').isNotEmpty) 'lineDisplayName': lineDisplayName,
       };
 
   factory AppUser.fromMap(Map<String, dynamic> m) {
@@ -149,6 +171,8 @@ class AppUser {
       status: (m['status'] ?? 'active') as String,
       shopId: m['shopId'] as String?,
       favorites: ((m['favorites'] ?? const []) as List).map((e) => e.toString()).toList(),
+      lineUserId: m['lineUserId'] as String?,
+      lineDisplayName: m['lineDisplayName'] as String?,
     );
   }
 }

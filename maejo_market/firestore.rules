@@ -98,6 +98,16 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // รหัสผูกบัญชี LINE: เจ้าของสร้าง/อ่าน/ลบของตัวเองได้เท่านั้น
+    // ตั้งใจไม่ให้ update — รหัสหนึ่งใช้ครั้งเดียว ถ้าเขียนทับได้จะแย่งรหัสที่คนอื่น
+    // ถืออยู่แล้วดักการเชื่อมต่อของเขาได้ (ฝั่งเซิร์ฟเวอร์ใช้ service account จึงข้ามกฎนี้)
+    match /lineLinks/{code} {
+      allow read:   if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
     // การแจ้งเตือน: เจ้าของอ่าน/อัปเดต(อ่านแล้ว)/ลบได้ ; admin สร้างให้ผู้ใช้ได้
     match /notifications/{id} {
       allow read:           if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);

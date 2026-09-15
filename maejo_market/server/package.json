@@ -1,0 +1,11 @@
+{
+  "name": "maejo-market-line",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ตัวกลางส่งแจ้งเตือน Maejo Market เข้า LINE OA (Vercel Serverless Functions)",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "firebase-admin": "^13.0.2"
+  }
+}

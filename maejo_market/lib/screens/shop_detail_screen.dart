@@ -5,8 +5,12 @@ import '../models/review.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/shop_cards.dart';
+import '../widgets/shop_ui.dart';
 import 'market_map_screen.dart';
 
+/// หน้าร้าน — รูปปกเต็มความกว้าง ปุ่มกลมลอยทับรูป ชื่อร้านกลางภาพ
+/// สินค้าเป็นตาราง 2 คอลัมน์ และแถบปุ่มลอยด้านล่าง (ย้อนกลับ/ติดตาม/แผนที่)
 class ShopDetailScreen extends StatefulWidget {
   final Shop shop;
   const ShopDetailScreen({super.key, required this.shop});
@@ -29,7 +33,14 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
 
   Future<void> _loadReviews() async {
     setState(() => _loadingReviews = true);
-    final r = await appState.fetchReviewsFor(widget.shop.id);
+    // โหลดไม่ได้ (เน็ตหลุด/สิทธิ์ไม่พอ) ก็ให้แสดงว่า "ยังไม่มีรีวิว" แทนที่จะค้างหมุน
+    List<Review> r;
+    try {
+      r = await appState.fetchReviewsFor(widget.shop.id);
+    } catch (e) {
+      debugPrint('fetchReviewsFor failed: $e');
+      r = [];
+    }
     if (!mounted) return;
     setState(() {
       _reviews = r;
@@ -59,7 +70,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => _ReviewSheet(shop: widget.shop, existing: _myReview),
     );
@@ -78,6 +89,17 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
     if (!mounted) return;
     setState(() {});
     showSnack(context, nowFav ? 'ติดตามร้าน ${widget.shop.name} แล้ว ❤️' : 'เลิกติดตามแล้ว');
+  }
+
+  void _openMap() {
+    if (!widget.shop.hasStall) {
+      showSnack(context, 'ร้านนี้ยังไม่ได้จองแผง');
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => MarketMapScreen(focusStallId: widget.shop.stallId)),
+    );
   }
 
   Future<void> _deleteMyReview(Review r) async {
@@ -103,170 +125,169 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
     final shop = widget.shop;
     final count = _reviews.length;
     final headerRating = count > 0 ? _avg : shop.rating;
+    final fav = appState.isFavorite(shop.id);
+
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 220,
-            backgroundColor: AppColors.primary,
-            actions: [
-              IconButton(
-                tooltip: appState.isFavorite(shop.id) ? 'เลิกติดตาม' : 'ติดตามร้าน',
-                onPressed: _toggleFav,
-                icon: Icon(
-                  appState.isFavorite(shop.id) ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: appState.isFavorite(shop.id) ? AppColors.bad : Colors.white,
+      extendBody: true,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: HeroHeader(
+                  imageUrl: shop.imageUrl,
+                  fallbackIcon: shop.icon,
+                  title: shop.name,
+                  subtitle: count > 0
+                      ? '${headerRating.toStringAsFixed(1)} ★ ($count รีวิว)'
+                      : '${shop.rating.toStringAsFixed(1)} ★ · ${shop.category}',
+                  height: 290,
+                  leadingActions: [
+                    CircleIconButton(Icons.arrow_back_rounded,
+                        tooltip: 'ย้อนกลับ', onTap: () => Navigator.pop(context)),
+                  ],
+                  trailingActions: [
+                    PillButton(
+                      fav ? 'กำลังติดตาม' : 'ติดตาม',
+                      icon: fav ? Icons.check_rounded : Icons.add_rounded,
+                      onTap: _toggleFav,
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(width: 8),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: shop.hasImage
-                  ? Image.network(
-                      shop.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        decoration: BoxDecoration(gradient: brandGradient),
-                        child: Center(child: Icon(shop.icon, color: Colors.white, size: 76)),
+
+              // ---- ข้อมูลร้านแบบชิปเรียงแนวนอน ----
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _InfoChip(Icons.access_time_rounded, shop.hoursLabel),
+                          _InfoChip(
+                              Icons.place_outlined,
+                              shop.hasStall
+                                  ? 'โซน ${shop.zone} · แผง ${shop.stallId}'
+                                  : 'ยังไม่จองแผง'),
+                          _InfoChip(Icons.sell_outlined, shop.category),
+                          if (shop.status == 'closed')
+                            StatusPill('ปิดปรับปรุง', tone: 'bad')
+                          else
+                            StatusPill('เปิดขาย', tone: 'ok'),
+                        ],
                       ),
-                    )
-                  : Container(
-                      decoration: BoxDecoration(gradient: brandGradient),
-                      child: Center(child: Icon(shop.icon, color: Colors.white, size: 76)),
-                    ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Expanded(
-                      child: Text(shop.name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                    ),
-                    StatusPill('ร้านแนะนำ', tone: 'ok'),
-                  ]),
-                  SizedBox(height: 8),
-                  Row(children: [
-                    Icon(Icons.star_rounded, color: AppColors.accent, size: 18),
-                    SizedBox(width: 4),
-                    Text(
-                      count > 0 ? '${headerRating.toStringAsFixed(1)}  ($count รีวิว)' : 'ยังไม่มีรีวิว',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ]),
-                  SizedBox(height: 10),
-                  _infoRow(Icons.access_time_rounded, shop.hoursLabel),
-                  _infoRow(Icons.place_outlined, shop.hasStall ? 'โซน ${shop.zone} · แผง ${shop.stallId}' : 'ยังไม่จองแผง'),
-                  _infoRow(Icons.sell_outlined, 'หมวด: ${shop.category}'),
-                  if (shop.description.trim().isNotEmpty) ...[
-                    SizedBox(height: 8),
-                    Text(shop.description, style: TextStyle(fontSize: 13.5, height: 1.4)),
-                  ],
-                  SectionTitle('เมนู / สินค้า', icon: Icons.restaurant_menu_rounded),
-                  FutureBuilder<List<Product>>(
-                    future: _future,
-                    builder: (context, snap) {
-                      if (snap.connectionState == ConnectionState.waiting) {
-                        return Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      final items = snap.data ?? [];
-                      if (items.isEmpty) {
-                        return AppCard(
-                          child: Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('ยังไม่มีเมนู/สินค้า', style: TextStyle(color: AppColors.muted)),
-                          ),
-                        );
-                      }
-                      return Column(
-                        children: items
-                            .map((p) => Padding(
-                                  padding: EdgeInsets.only(bottom: 10),
-                                  child: AppCard(
-                                    padding: EdgeInsets.all(12),
-                                    child: Row(children: [
-                                      NetImage(url: p.imageUrl, fallback: Icons.restaurant_rounded, width: 44, height: 44, radius: 12),
-                                      SizedBox(width: 12),
-                                      Expanded(child: Text(p.name, style: TextStyle(fontWeight: FontWeight.w700))),
-                                      if (!p.available)
-                                        Padding(
-                                          padding: EdgeInsets.only(right: 8),
-                                          child: StatusPill('หมด', tone: 'bad'),
-                                        ),
-                                      Text('฿${p.price.toStringAsFixed(0)}',
-                                          style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
-                                    ]),
-                                  ),
-                                ))
-                            .toList(),
-                      );
-                    },
+                      if (shop.description.trim().isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Text(shop.description,
+                            style: const TextStyle(fontSize: 14, height: 1.5)),
+                      ],
+                      const SizedBox(height: 24),
+                      const PageHeading('เมนู / สินค้า'),
+                      const SizedBox(height: 14),
+                    ],
                   ),
+                ),
+              ),
 
-                  // ---------------- รีวิว ----------------
-                  SectionTitle('รีวิวจากลูกค้า', icon: Icons.reviews_rounded),
-                  _reviewSummary(count),
-                  SizedBox(height: 12),
-                  if (_loadingReviews)
-                    Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (_reviews.isEmpty)
-                    AppCard(
-                      child: Row(children: [
-                        Icon(Icons.rate_review_outlined, color: AppColors.muted),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text('ยังไม่มีรีวิว เป็นคนแรกที่รีวิวร้านนี้เลย!',
-                              style: TextStyle(color: AppColors.muted)),
+              // ---- สินค้าแบบตาราง ----
+              FutureBuilder<List<Product>>(
+                future: _future,
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(28),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    );
+                  }
+                  final items = snap.data ?? [];
+                  if (items.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: EmptyState(
+                          icon: Icons.restaurant_menu_rounded,
+                          message: 'ยังไม่มีเมนู/สินค้าในร้านนี้',
                         ),
-                      ]),
-                    )
-                  else
-                    Column(children: _reviews.map(_reviewCard).toList()),
-
-                  SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          if (!shop.hasStall) {
-                            showSnack(context, 'ร้านนี้ยังไม่ได้จองแผง');
-                            return;
-                          }
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => MarketMapScreen(focusStallId: shop.stallId)),
-                          );
-                        },
-                        icon: Icon(Icons.map_outlined),
-                        label: Text('ดูแผนที่'),
+                      ),
+                    );
+                  }
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 20,
+                        childAspectRatio: 0.74,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) => ProductTile(product: items[i]),
+                        childCount: items.length,
                       ),
                     ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: appState.isFavorite(shop.id)
-                          ? OutlinedButton.icon(
-                              onPressed: _toggleFav,
-                              icon: Icon(Icons.check_rounded),
-                              label: Text('กำลังติดตาม'),
-                            )
-                          : ElevatedButton.icon(
-                              onPressed: _toggleFav,
-                              icon: Icon(Icons.add),
-                              label: Text('ติดตามร้าน'),
-                            ),
+                  );
+                },
+              ),
+
+              // ---- รีวิว ----
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 28, 16, navBarInset(context)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const PageHeading('รีวิวจากลูกค้า'),
+                      const SizedBox(height: 14),
+                      _reviewSummary(count),
+                      const SizedBox(height: 14),
+                      if (_loadingReviews)
+                        const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (_reviews.isEmpty)
+                        EmptyState(
+                          icon: Icons.rate_review_outlined,
+                          message: 'ยังไม่มีรีวิว เป็นคนแรกที่รีวิวร้านนี้เลย!',
+                        )
+                      else
+                        Column(children: _reviews.map(_reviewCard).toList()),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // ---- แถบปุ่มลอยล่างจอ ----
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Row(children: [
+                  CircleIconButton(Icons.arrow_back_rounded,
+                      size: 52, onTap: () => Navigator.pop(context)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: PillButton(
+                      shop.hasStall ? 'พาไปที่แผง ${shop.stallId}' : 'ดูแผนผังตลาด',
+                      icon: Icons.map_rounded,
+                      filled: true,
+                      height: 52,
+                      onTap: _openMap,
                     ),
-                  ]),
-                ],
+                  ),
+                ]),
               ),
             ),
           ),
@@ -278,29 +299,36 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
   // สรุปคะแนนเฉลี่ย + ปุ่มเขียนรีวิว
   Widget _reviewSummary(int count) {
     final mine = _myReview;
-    return AppCard(
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(kPanelRadius),
+      ),
       child: Row(children: [
         Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(count > 0 ? _avg.toStringAsFixed(1) : '–',
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: AppColors.text, height: 1.1)),
-            _StarRow(rating: count > 0 ? _avg : 0, size: 15),
-            SizedBox(height: 2),
-            Text('$count รีวิว', style: TextStyle(fontSize: 11.5, color: AppColors.muted)),
+                style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.text,
+                    height: 1.1)),
+            StarRow(rating: count > 0 ? _avg : 0, size: 16),
+            const SizedBox(height: 2),
+            Text('$count รีวิว', style: TextStyle(fontSize: 12, color: AppColors.muted)),
           ],
         ),
-        SizedBox(width: 18),
+        const SizedBox(width: 18),
         Expanded(
           child: _canReview
-              ? SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _openWriteSheet,
-                    icon: Icon(mine == null ? Icons.rate_review_rounded : Icons.edit_rounded, size: 18),
-                    label: Text(mine == null ? 'เขียนรีวิว' : 'แก้ไขรีวิวของฉัน'),
-                  ),
+              ? PillButton(
+                  mine == null ? 'เขียนรีวิว' : 'แก้ไขรีวิวของฉัน',
+                  icon: mine == null ? Icons.rate_review_rounded : Icons.edit_rounded,
+                  filled: true,
+                  onTap: _openWriteSheet,
                 )
               : Text(
                   appState.isLoggedIn ? 'นี่คือร้านของคุณ' : 'เข้าสู่ระบบเพื่อรีวิว',
@@ -315,20 +343,21 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
     final mine = r.uid == appState.user?.uid;
     final initial = r.authorName.trim().isEmpty ? '?' : r.authorName.characters.first;
     return Padding(
-      padding: EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 10),
       child: AppCard(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
               CircleAvatar(
-                radius: 16,
+                radius: 17,
                 backgroundColor: AppColors.leafSoft,
                 child: Text(initial,
-                    style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w800, fontSize: 13)),
+                    style: TextStyle(
+                        color: AppColors.primaryDark, fontWeight: FontWeight.w800, fontSize: 14)),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,20 +365,21 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                     Row(children: [
                       Flexible(
                         child: Text(r.authorName.isEmpty ? 'ผู้ใช้' : r.authorName,
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5),
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5),
                             overflow: TextOverflow.ellipsis),
                       ),
                       if (mine) ...[
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         StatusPill('ของฉัน', tone: 'ok'),
                       ],
                     ]),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Row(children: [
-                      _StarRow(rating: r.rating.toDouble(), size: 13),
+                      StarRow(rating: r.rating.toDouble(), size: 13),
                       if (r.createdAt > 0) ...[
-                        SizedBox(width: 6),
-                        Text(_timeAgo(r.createdAt), style: TextStyle(fontSize: 11, color: AppColors.faint)),
+                        const SizedBox(width: 6),
+                        Text(_timeAgo(r.createdAt),
+                            style: TextStyle(fontSize: 11, color: AppColors.faint)),
                       ],
                     ]),
                   ],
@@ -363,47 +393,36 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                 ),
             ]),
             if (r.comment.trim().isNotEmpty) ...[
-              SizedBox(height: 8),
-              Text(r.comment, style: TextStyle(fontSize: 13.5, height: 1.4)),
+              const SizedBox(height: 8),
+              Text(r.comment, style: const TextStyle(fontSize: 13.5, height: 1.4)),
             ],
           ],
         ),
       ),
     );
   }
-
-  Widget _infoRow(IconData icon, String text) => Padding(
-        padding: EdgeInsets.only(bottom: 6),
-        child: Row(children: [
-          Icon(icon, size: 16, color: AppColors.muted),
-          SizedBox(width: 8),
-          Text(text, style: TextStyle(color: AppColors.muted, fontSize: 13)),
-        ]),
-      );
 }
 
-/// แถวดาว (อ่านอย่างเดียว) รองรับครึ่งดาว
-class _StarRow extends StatelessWidget {
-  final double rating;
-  final double size;
-  const _StarRow({required this.rating, this.size = 14});
+/// ชิปข้อมูลเล็ก ๆ ใต้รูปปก (เวลาเปิด/ที่ตั้ง/หมวด)
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _InfoChip(this.icon, this.text);
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (i) {
-        final pos = i + 1;
-        IconData ic;
-        if (rating >= pos) {
-          ic = Icons.star_rounded;
-        } else if (rating >= pos - 0.5) {
-          ic = Icons.star_half_rounded;
-        } else {
-          ic = Icons.star_border_rounded;
-        }
-        return Icon(ic, size: size, color: AppColors.accent);
-      }),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(kPillRadius),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 15, color: AppColors.muted),
+        const SizedBox(width: 6),
+        Text(text,
+            style: TextStyle(fontSize: 12.5, color: AppColors.text, fontWeight: FontWeight.w600)),
+      ]),
     );
   }
 }
@@ -463,12 +482,12 @@ class _ReviewSheetState extends State<_ReviewSheet> {
               ),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(widget.existing == null ? 'ให้คะแนนร้าน' : 'แก้ไขรีวิว',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-          SizedBox(height: 2),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
           Text(widget.shop.name, style: TextStyle(color: AppColors.muted, fontSize: 13)),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           // ดาวแบบกดเลือก
           Center(
             child: Column(children: [
@@ -480,7 +499,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
                     onTap: () => setState(() => _rating = pos),
                     behavior: HitTestBehavior.opaque,
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Icon(
                         _rating >= pos ? Icons.star_rounded : Icons.star_border_rounded,
                         size: 40,
@@ -490,12 +509,12 @@ class _ReviewSheetState extends State<_ReviewSheet> {
                   );
                 }),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(_labels[_rating],
                   style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
             ]),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           TextField(
             controller: _c,
             maxLines: 4,
@@ -504,21 +523,16 @@ class _ReviewSheetState extends State<_ReviewSheet> {
             decoration: InputDecoration(
               hintText: 'เล่าประสบการณ์ของคุณ (ไม่บังคับ)',
               alignLabelWithHint: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
             ),
           ),
-          SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _busy ? null : _submit,
-              icon: _busy
-                  ? SizedBox(
-                      width: 18, height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Icon(Icons.send_rounded, size: 18),
-              label: Text(_busy ? 'กำลังส่ง...' : 'ส่งรีวิว'),
-            ),
+          const SizedBox(height: 8),
+          PillButton(
+            _busy ? 'กำลังส่ง...' : 'ส่งรีวิว',
+            icon: Icons.send_rounded,
+            filled: true,
+            height: 52,
+            onTap: _busy ? null : _submit,
           ),
         ],
       ),

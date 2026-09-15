@@ -1,3 +1,4 @@
+import 'market_layout.dart';
 import '../models/app_user.dart';
 import '../models/shop.dart';
 import '../models/market_request.dart';
@@ -44,13 +45,13 @@ class DemoData {
       ];
 
   static List<Shop> shops() => const [
-        Shop(id: 's1', name: 'ร้านป้าจันทร์ อาหารเหนือ', category: 'อาหาร', ownerName: 'ณิชชา ใจดี', stallId: 'A-2', zone: 'A', rating: 4.8, reviews: 125),
-        Shop(id: 's2', name: 'สวนผักป้านวล', category: 'ผักสด', ownerName: 'ป้านวล', stallId: 'A-14', zone: 'A', rating: 4.9, reviews: 88),
-        Shop(id: 's3', name: 'สวนมะม่วงลุงคำ', category: 'ผลไม้', ownerName: 'ลุงคำ', stallId: 'B-3', zone: 'B', rating: 4.7, reviews: 64),
-        Shop(id: 's4', name: 'ครัวข้าวซอยแม่โจ้', category: 'อาหาร', ownerName: 'ศรีนวล', stallId: 'C-11', zone: 'C', payStatus: 'due', rating: 4.6, reviews: 52),
-        Shop(id: 's5', name: 'ปลาสดน้องหมวย', category: 'ประมง', ownerName: 'สมพร', stallId: 'D-7', zone: 'D', payStatus: 'bad', rating: 4.5, reviews: 40),
-        Shop(id: 's6', name: 'กาแฟดอยแม่โจ้', category: 'เครื่องดื่ม', ownerName: 'วิภา ดอยคำ', stallId: 'C-3', zone: 'C', rating: 4.7, reviews: 73),
-        Shop(id: 's7', name: 'สวนผักปลอดสารแม่โจ้', category: 'ผัก / ผลไม้', ownerName: 'บุญมา', stallId: 'B-1', zone: 'B', rating: 4.6, reviews: 45),
+        Shop(id: 's1', name: 'ร้านป้าจันทร์ อาหารเหนือ', category: 'อาหาร', ownerName: 'ณิชชา ใจดี', stallId: 'C-3', zone: 'C', rating: 4.8, reviews: 125),
+        Shop(id: 's2', name: 'สวนผักป้านวล', category: 'ผักสด', ownerName: 'ป้านวล', stallId: 'B-1', zone: 'B', rating: 4.9, reviews: 88),
+        Shop(id: 's3', name: 'สวนมะม่วงลุงคำ', category: 'ผลไม้', ownerName: 'ลุงคำ', stallId: 'D-3', zone: 'D', rating: 4.7, reviews: 64),
+        Shop(id: 's4', name: 'ครัวข้าวซอยแม่โจ้', category: 'อาหาร', ownerName: 'ศรีนวล', stallId: 'C-7', zone: 'C', payStatus: 'due', rating: 4.6, reviews: 52),
+        Shop(id: 's5', name: 'ปลาสดน้องหมวย', category: 'ประมง', ownerName: 'สมพร', stallId: 'A-4', zone: 'A', payStatus: 'bad', rating: 4.5, reviews: 40),
+        Shop(id: 's6', name: 'กาแฟดอยแม่โจ้', category: 'เครื่องดื่ม', ownerName: 'วิภา ดอยคำ', stallId: 'C-11', zone: 'C', rating: 4.7, reviews: 73),
+        Shop(id: 's7', name: 'สวนผักปลอดสารแม่โจ้', category: 'ผัก / ผลไม้', ownerName: 'บุญมา', stallId: 'B-4', zone: 'B', rating: 4.6, reviews: 45),
       ];
 
   static List<MarketRequest> requests() => const [
@@ -61,71 +62,49 @@ class DemoData {
         MarketRequest(id: 'r5', type: RequestType.close, title: 'ของทอดเจ๊แดง · C-05', subtitle: 'ขอปิดร้านชั่วคราว 1–15 ส.ค.', amount: '15 วัน', requesterName: 'เจ๊แดง'),
       ];
 
+  /// แผงทั้งหมด "ตามผังจริง" — ตำแหน่งมาจาก [MarketLayout] จะได้ไม่ต้องไล่แก้สองที่
   static List<Stall> stalls() {
-    final zones = {'A': 5, 'B': 5, 'C': 5, 'D': 5};
-    final occupied = {
-      'A-1': 'สลัดผักดอยแม่โจ้',
-      'A-2': 'ร้านป้าจันทร์',
-      'A-3': 'ข้าวอินทรีย์ดอยคำ',
-      'B-1': 'สวนผักปลอดสาร',
-      'B-2': 'สวนมะม่วงลุงคำ',
-      'B-4': 'ส้มสายน้ำผึ้ง',
-      'C-1': 'ครัวข้าวซอย',
-      'C-3': 'กาแฟดอยแม่โจ้',
-      'D-1': 'ปลาสดน้องหมวย',
-      'D-2': 'หมูสดฟาร์มแม่โจ้',
+    const occupied = <String, String>{
+      'A-4': 'ปลาสดน้องหมวย',
+      'A-2': 'หมูสดฟาร์มแม่โจ้',
+      'A-9': 'ไข่ไก่สดบ้านสวน',
+      'B-1': 'สวนผักป้านวล',
+      'B-4': 'สวนผักปลอดสารแม่โจ้',
+      'B-5': 'ผักดอยแม่โจ้',
+      'C-3': 'ร้านป้าจันทร์ อาหารเหนือ',
+      'C-7': 'ครัวข้าวซอยแม่โจ้',
+      'C-11': 'กาแฟดอยแม่โจ้',
+      'C-1': 'ร้านเย็บผ้าแม่ประนอม',
+      'D-1': 'ของป่าลุงมา',
+      'D-3': 'สวนมะม่วงลุงคำ',
+      'D-4': 'ดอกไม้สดแม่โจ้',
     };
-    final due = {'A-5', 'B-5', 'C-2'};
-    final closed = {'C-5', 'B-3'};
+    const due = {'C-7', 'B-5', 'A-2'};
+    const closed = {'C-1', 'B-6'};
 
-    // หมวดประจำแผง — กำหนดรายแผง โซนหนึ่งจึงมีได้หลายหมวด
-    const category = <String, String>{
-      'A-1': 'ผัก / ผลไม้', 'A-2': 'อาหาร', 'A-3': 'ของแห้ง',
-      'A-4': 'ผัก / ผลไม้', 'A-5': 'ของแห้ง',
-      'B-1': 'ผัก / ผลไม้', 'B-2': 'ผัก / ผลไม้', 'B-3': 'ผัก / ผลไม้',
-      'B-4': 'ผัก / ผลไม้', 'B-5': 'ของใช้',
-      'C-1': 'อาหาร', 'C-2': 'อาหาร', 'C-3': 'เครื่องดื่ม',
-      'C-4': 'เครื่องดื่ม', 'C-5': 'อาหาร',
-      'D-1': 'ประมง', 'D-2': 'ประมง', 'D-3': 'ประมง',
-      'D-4': 'ของใช้', 'D-5': 'ของแห้ง',
-    };
+    // แผงติดทางเข้าคนเดินผ่านเยอะกว่า คิดค่าเช่าเพิ่ม
+    const nearGate = {'A-3', 'A-4', 'D-1', 'D-2', 'D-3', 'D-4'};
 
-    // ค่าเช่าฐานต่อวันตามหมวด (บาท) — หมวดที่ขายดีกว่าคิดแพงกว่า
-    const basePrice = <String, int>{
-      'อาหาร': 220,
-      'เครื่องดื่ม': 200,
-      'ประมง': 180,
-      'ผัก / ผลไม้': 150,
-      'ของแห้ง': 130,
-      'ของใช้': 120,
-    };
-
-    final list = <Stall>[];
-    zones.forEach((z, n) {
-      for (var i = 1; i <= n; i++) {
-        final id = '$z-$i';
-        String st = 'empty';
-        if (occupied.containsKey(id)) {
-          st = 'occupied';
-        } else if (due.contains(id)) {
-          st = 'due';
-        } else if (closed.contains(id)) {
-          st = 'closed';
-        }
-        final cat = category[id] ?? '';
-        final base = basePrice[cat] ?? 150;
-        list.add(Stall(
-          id: id,
-          zone: z,
-          status: st,
-          shopName: occupied[id],
-          category: cat,
-          // แผงเลข 1-2 อยู่ติดทางเข้าตลาด คนเดินผ่านเยอะกว่า จึงบวกเพิ่ม
-          pricePerDay: i <= 2 ? base + 30 : base,
-        ));
-      }
-    });
-    return list;
+    return [
+      for (final slot in MarketLayout.slots)
+        Stall(
+          id: slot.id,
+          zone: slot.id.split('-').first,
+          // ค้างชำระ/ปิดปรับปรุง เป็นสถานะของแผงที่ "มีร้านอยู่แล้ว"
+          // จึงต้องตรวจก่อน ไม่งั้นจะถูกกลบเป็น occupied ทั้งหมด
+          status: due.contains(slot.id)
+              ? 'due'
+              : closed.contains(slot.id)
+                  ? 'closed'
+                  : occupied.containsKey(slot.id)
+                      ? 'occupied'
+                      : 'empty',
+          shopName: occupied[slot.id],
+          category: MarketLayout.appCategoryOf(slot.sectionId),
+          pricePerDay: MarketLayout.sectionOf(slot.sectionId).pricePerDay +
+              (nearGate.contains(slot.id) ? 25 : 0),
+        ),
+    ];
   }
 
   /// แบนเนอร์ตัวอย่างหน้าแรก — ปกติแอดมินจัดการเองผ่านหน้าจัดการแบนเนอร์

@@ -6,6 +6,7 @@ import '../../widgets/common.dart';
 import '../../widgets/animations.dart';
 import '../../widgets/market_map.dart';
 import '../../widgets/notification_button.dart';
+import '../../widgets/shop_ui.dart';
 import '../../widgets/change_password.dart';
 import '../../theme/theme_controller.dart';
 import '../profile_tab.dart';
@@ -39,8 +40,11 @@ class _AdminShellState extends State<AdminShell> {
       });
     }
     final titles = ['แดชบอร์ดผู้ดูแลระบบ', 'อนุมัติคำขอ', 'แผนผังตลาด', 'ตรวจมาตรฐานร้าน', 'โปรไฟล์'];
-    return Scaffold(
-      appBar: AppBar(
+    return FloatingNavScaffold(
+      // หน้าฝั่งแอดมินยังเป็น list ธรรมดา จึงให้แถบเมนูกินพื้นที่ล่างตามปกติ
+      floatOverContent: false,
+      body: Scaffold(
+        appBar: AppBar(
         title: Text(titles[_tab]),
         automaticallyImplyLeading: false,
         actions: [
@@ -72,48 +76,40 @@ class _AdminShellState extends State<AdminShell> {
           ),
         ],
       ),
-      body: ListenableBuilder(
-        listenable: appState,
-        builder: (_, __) {
-          switch (_tab) {
-            case 1:
-              return ApprovalsTab();
-            case 2:
-              return _AdminMap();
-            case 3:
-              return StandardTab();
-            case 4:
-              return ProfileTab();
-            default:
-              return _AdminDashboard(onGoApprovals: () => setState(() => _tab = 1));
-          }
-        },
+        body: ListenableBuilder(
+          listenable: appState,
+          builder: (_, __) {
+            switch (_tab) {
+              case 1:
+                return ApprovalsTab();
+              case 2:
+                return _AdminMap();
+              case 3:
+                return StandardTab();
+              case 4:
+                return ProfileTab();
+              default:
+                return _AdminDashboard(onGoApprovals: () => setState(() => _tab = 1));
+            }
+          },
+        ),
       ),
-      bottomNavigationBar: ListenableBuilder(
+      // ป้ายจำนวนคำขอค้างบนแท็บ "อนุมัติ" ต้องอัปเดตตามสถานะ จึงต้องฟัง appState
+      navBar: ListenableBuilder(
         listenable: appState,
-        builder: (_, __) => NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: (i) => setState(() => _tab = i),
-          destinations: [
-            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'หน้าหลัก'),
-            NavigationDestination(
-              icon: Badge(
-                isLabelVisible: appState.pendingCount > 0,
-                label: Text('${appState.pendingCount}'),
-                child: Icon(Icons.inbox_outlined),
-              ),
-              label: 'อนุมัติ',
-            ),
-            NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'แผนผัง'),
-            NavigationDestination(icon: Icon(Icons.verified_outlined), label: 'มาตรฐาน'),
-            // ต้องมีโปรไฟล์ในฝั่งแอดมินด้วย ไม่งั้นเจ้าของตลาดที่เป็นแม่ค้าด้วย
-            // จะไม่มีที่สลับบทบาท
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: 'โปรไฟล์',
-            ),
-          ],
+        builder: (_, __) => FloatingNavBar(
+        index: _tab,
+        onChanged: (i) => setState(() => _tab = i),
+        items: [
+          const NavItem(Icons.dashboard_outlined, 'หน้าหลัก', activeIcon: Icons.dashboard_rounded),
+          NavItem(Icons.inbox_outlined, 'อนุมัติ',
+              activeIcon: Icons.inbox_rounded, badge: appState.pendingCount),
+          const NavItem(Icons.map_outlined, 'แผนผัง', activeIcon: Icons.map_rounded),
+          const NavItem(Icons.verified_outlined, 'มาตรฐาน', activeIcon: Icons.verified_rounded),
+          // ต้องมีโปรไฟล์ในฝั่งแอดมินด้วย ไม่งั้นเจ้าของตลาดที่เป็นแม่ค้าด้วย
+          // จะไม่มีที่สลับบทบาท
+          const NavItem(Icons.person_outline_rounded, 'โปรไฟล์', activeIcon: Icons.person_rounded),
+        ],
         ),
       ),
     );

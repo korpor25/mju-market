@@ -242,6 +242,39 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---------------- LINE ----------------
+
+  /// ขอรหัสผูกบัญชี LINE (6 ตัว) — คืน null ถ้ายังไม่ได้ตั้งค่าหรือทำไม่สำเร็จ
+  Future<String?> createLineLinkCode() async {
+    final u = user;
+    if (_fb == null || u == null) return null;
+    try {
+      return await _fb.createLineLinkCode(u.uid);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> unlinkLine() async {
+    final u = user;
+    if (_fb == null || u == null) return;
+    await _fb.unlinkLine(u.uid);
+    user = u.copyWith(clearLine: true);
+    notifyListeners();
+  }
+
+  /// ดึงข้อมูลผู้ใช้ใหม่จาก Firestore — ใช้เช็คว่าผูกไลน์สำเร็จหรือยัง
+  /// (การผูกเกิดขึ้นฝั่งเซิร์ฟเวอร์ตอนผู้ใช้พิมพ์รหัสในแชต แอปจึงต้องถามเอง)
+  Future<bool> refreshUser() async {
+    final u = user;
+    if (_fb == null || u == null) return false;
+    final fresh = await _fb.fetchUser(u.uid);
+    if (fresh == null) return false;
+    user = fresh;
+    notifyListeners();
+    return true;
+  }
+
   // ---------------- AUTH ----------------
 
   /// คืนค่า null = สำเร็จ, หรือข้อความ error (ภาษาไทย)
@@ -284,8 +317,8 @@ class AppState extends ChangeNotifier {
       email: email,
       phone: phone,
       role: role,
-      // ผู้ขายเปิดร้านใหม่ต้องรอผู้ดูแลระบบอนุมัติ
-      status: role == UserRole.seller ? 'pending' : 'active',
+      // สมัครแค่บัญชี — "รออนุมัติ" มาจากคำขอเปิดร้านที่ยื่นทีหลัง (หลังเชื่อม LINE)
+      status: 'active',
     );
     _demoAccounts[email] = {'password': password, 'user': newUser};
     user = newUser;
@@ -453,6 +486,10 @@ class AppState extends ChangeNotifier {
     if (u == null) return 'ยังไม่ได้เข้าสู่ระบบ';
     if (shopName.trim().isEmpty) return 'กรอกชื่อร้านก่อน';
     if (myPendingShopRequest != null) return 'มีคำขอเปิดร้านรออนุมัติอยู่แล้ว';
+    // กันไว้อีกชั้นนอกจากปุ่มในฟอร์ม — ผลอนุมัติต้องแจ้งเข้าไลน์ได้ (แอดมินอนุมัติตัวเองได้ จึงยกเว้น)
+    if (AppConfig.lineReady && !u.lineLinked && !u.can(UserRole.admin)) {
+      return 'เชื่อมต่อ LINE ก่อนยื่นขอเปิดร้าน';
+    }
 
     if (_fb != null) {
       await _fb.addSellerApply(

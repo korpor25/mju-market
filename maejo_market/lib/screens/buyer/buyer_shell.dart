@@ -1,19 +1,24 @@
-import '../../widgets/banner_carousel.dart';
 import 'package:flutter/material.dart';
+
 import '../../models/shop.dart';
 import '../../models/stall.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/common.dart';
+import '../../theme/theme_controller.dart';
 import '../../widgets/animations.dart';
+import '../../widgets/banner_carousel.dart';
+import '../../widgets/common.dart';
 import '../../widgets/market_map.dart';
 import '../../widgets/notification_button.dart';
-import '../../theme/theme_controller.dart';
+import '../../widgets/shop_cards.dart';
+import '../../widgets/shop_ui.dart';
+import '../favorites_screen.dart';
 import '../profile_tab.dart';
-import '../shop_detail_screen.dart';
 
+/// ฝั่งผู้ซื้อ — เลย์เอาต์แบบหน้าร้านออนไลน์: รูปปกเต็มจอ ปุ่มกลมลอย
+/// ชิปหมวดหมู่เลื่อนแนวนอน การ์ดร้านแบบตาราง และแถบเมนูแคปซูลลอย
 class BuyerShell extends StatefulWidget {
-  BuyerShell({super.key});
+  const BuyerShell({super.key});
 
   @override
   State<BuyerShell> createState() => _BuyerShellState();
@@ -22,73 +27,280 @@ class BuyerShell extends StatefulWidget {
 class _BuyerShellState extends State<BuyerShell> {
   int _tab = 0;
 
+  /// ให้หน้าลูกสั่งสลับแท็บได้ (เช่นกดช่องค้นหาบนหน้าแรก)
+  void goToTab(int i) => setState(() => _tab = i);
+
   @override
   Widget build(BuildContext context) {
-    final pages = const [_BuyerHome(), _BuyerSearch(), _BuyerMap(), ProfileTab()];
-    final titles = ['Maejo Market', 'ค้นหาร้านค้า', 'แผนที่ตลาดแม่โจ้', 'บัญชีของฉัน'];
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(titles[_tab]),
-        automaticallyImplyLeading: false,
-        actions: const [ThemeToggleButton(), NotificationButton()],
+    return FloatingNavScaffold(
+      // IndexedStack เก็บตำแหน่งเลื่อนของแต่ละแท็บไว้ สลับแท็บแล้วไม่เด้งกลับบนสุด
+      body: IndexedStack(
+        index: _tab,
+        children: const [_BuyerHome(), _BuyerSearch(), _BuyerMap(), _BuyerProfile()],
       ),
-      body: pages[_tab],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'หน้าแรก'),
-          NavigationDestination(icon: Icon(Icons.search_rounded), label: 'ค้นหา'),
-          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'แผนที่'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person_rounded), label: 'โปรไฟล์'),
+      navBar: FloatingNavBar(
+        index: _tab,
+        onChanged: (i) => setState(() => _tab = i),
+        items: const [
+          NavItem(Icons.home_outlined, 'หน้าแรก', activeIcon: Icons.home_rounded),
+          NavItem(Icons.search_rounded, 'ค้นหา'),
+          NavItem(Icons.map_outlined, 'แผนที่', activeIcon: Icons.map_rounded),
+          NavItem(Icons.person_outline_rounded, 'โปรไฟล์', activeIcon: Icons.person_rounded),
         ],
       ),
     );
   }
 }
 
+/// หมวดหมู่ทั้งหมดที่มีร้านอยู่จริง (เรียงตามจำนวนร้าน) — ไม่ต้อง hardcode
+List<String> _categories(List<Shop> shops) {
+  final count = <String, int>{};
+  for (final s in shops) {
+    final c = s.category.trim();
+    if (c.isEmpty) continue;
+    count[c] = (count[c] ?? 0) + 1;
+  }
+  final cats = count.keys.toList()..sort((a, b) => count[b]!.compareTo(count[a]!));
+  return ['ทั้งหมด', ...cats];
+}
+
+/// รูปตัวแทนของหมวด = รูปร้านคะแนนสูงสุดในหมวดนั้น (ชิปจะได้มีภาพเหมือนหน้าร้านจริง)
+String _categoryThumb(List<Shop> shops, String cat) {
+  final inCat = shops.where((s) => cat == 'ทั้งหมด' || s.category == cat).toList()
+    ..sort((a, b) => b.rating.compareTo(a.rating));
+  for (final s in inCat) {
+    if (s.hasImage) return s.imageUrl;
+  }
+  return '';
+}
+
+IconData _categoryIcon(String cat) {
+  switch (cat) {
+    case 'ทั้งหมด':
+      return Icons.grid_view_rounded;
+    case 'อาหาร':
+      return Icons.ramen_dining_rounded;
+    case 'ผักสด':
+    case 'ผลไม้':
+    case 'ผัก / ผลไม้':
+      return Icons.eco_rounded;
+    case 'เครื่องดื่ม':
+      return Icons.local_cafe_rounded;
+    case 'ประมง':
+      return Icons.set_meal_rounded;
+    case 'ของแห้ง':
+      return Icons.inventory_2_rounded;
+    case 'ของใช้':
+      return Icons.shopping_bag_rounded;
+    default:
+      return Icons.storefront_rounded;
+  }
+}
+
+/// ตารางร้าน 2 คอลัมน์ (sliver) — ใช้ซ้ำทั้งหน้าแรกและหน้าค้นหา
+SliverGrid _shopGrid(List<Shop> shops) {
+  return SliverGrid(
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      crossAxisSpacing: 14,
+      mainAxisSpacing: 22,
+      childAspectRatio: 0.62,
+    ),
+    delegate: SliverChildBuilderDelegate(
+      (_, i) => ShopTile(shop: shops[i]),
+      childCount: shops.length,
+    ),
+  );
+}
+
 // ---------------- HOME ----------------
-class _BuyerHome extends StatelessWidget {
+class _BuyerHome extends StatefulWidget {
   const _BuyerHome();
 
   @override
+  State<_BuyerHome> createState() => _BuyerHomeState();
+}
+
+class _BuyerHomeState extends State<_BuyerHome> {
+  String _cat = 'ทั้งหมด';
+
+  @override
   Widget build(BuildContext context) {
-    final shops = appState.shops;
-    final cats = [
-      ('อาหาร', Icons.ramen_dining_rounded, AppColors.accent),
-      ('ผัก / ผลไม้', Icons.eco_rounded, AppColors.primary),
-      ('เครื่องดื่ม', Icons.local_cafe_rounded, Color(0xFF8D6E63)),
-      ('ของใช้', Icons.shopping_bag_outlined, Color(0xFF5C6BC0)),
-    ];
-    return ListView(
-      padding: EdgeInsets.all(16),
-      children: staggered([
-        const _SearchBox(),
-        SizedBox(height: 16),
-        const BannerCarousel(),
-        SectionTitle('หมวดหมู่', icon: Icons.grid_view_rounded),
-        Row(
-          children: cats
-              .map((c) => Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: Column(children: [
-                        IconChip(c.$2, color: c.$3, bg: c.$3.withOpacity(0.12), size: 52),
-                        SizedBox(height: 6),
-                        Text(c.$1, textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
-                      ]),
+    return ListenableBuilder(
+      listenable: appState,
+      builder: (context, _) {
+        final shops = appState.shops;
+        final cats = _categories(shops);
+        if (!cats.contains(_cat)) _cat = 'ทั้งหมด';
+
+        final listed = _cat == 'ทั้งหมด'
+            ? shops
+            : shops.where((s) => s.category == _cat).toList();
+        final top = [...shops]..sort((a, b) => b.rating.compareTo(a.rating));
+        final avg = shops.isEmpty
+            ? 0.0
+            : shops.map((s) => s.rating).reduce((a, b) => a + b) / shops.length;
+        final banners = appState.activeBanners;
+        final heroImage = banners.isNotEmpty && banners.first.hasImage
+            ? banners.first.imageUrl
+            : (top.isNotEmpty ? top.first.imageUrl : '');
+
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: HeroHeader(
+                imageUrl: heroImage,
+                title: 'Maejo Market',
+                subtitle: shops.isEmpty
+                    ? 'ตลาดแม่โจ้'
+                    : '${avg.toStringAsFixed(1)} ★ · ${shops.length} ร้านค้า',
+                leadingActions: const [ThemeToggleCircleButton()],
+                trailingActions: [
+                  CircleIconButton(
+                    Icons.favorite_border_rounded,
+                    tooltip: 'ร้านที่ติดตาม',
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const FavoritesScreen())),
+                  ),
+                  const NotificationCircleButton(),
+                ],
+              ),
+            ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _CategoryBar(
+                categories: cats,
+                selected: _cat,
+                thumb: (c) => _categoryThumb(shops, c),
+                onSelect: (c) => setState(() => _cat = c),
+                topInset: MediaQuery.of(context).padding.top,
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              sliver: SliverList.list(
+                children: staggered([
+                  const _HomeSearchBox(),
+                  const SizedBox(height: 18),
+                  if (top.isNotEmpty)
+                    SoftPanel(
+                      title: 'แนะนำสำหรับคุณ',
+                      child: SizedBox(
+                        height: 250,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          clipBehavior: Clip.none,
+                          itemCount: top.length > 8 ? 8 : top.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (_, i) =>
+                              SizedBox(width: 152, child: ShopTile(shop: top[i])),
+                        ),
+                      ),
                     ),
-                  ))
-              .toList(),
-        ),
-        SectionTitle('ร้านแนะนำ', icon: Icons.star_rounded, trailing: _SeeAll()),
-        ...shops.take(4).map((s) => Padding(
-              padding: EdgeInsets.only(bottom: 10),
-              child: ShopRow(shop: s),
-            )),
-      ]),
+                  if (banners.isNotEmpty) ...[
+                    const SizedBox(height: 22),
+                    const BannerCarousel(),
+                  ],
+                  const SizedBox(height: 26),
+                  PageHeading(_cat == 'ทั้งหมด' ? 'ร้านค้าทั้งหมด' : _cat),
+                  const SizedBox(height: 4),
+                  Text('${listed.length} ร้าน',
+                      style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                  const SizedBox(height: 14),
+                ]),
+              ),
+            ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, navBarInset(context)),
+              sliver: listed.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: EmptyState(
+                        icon: Icons.storefront_outlined,
+                        message: 'ยังไม่มีร้านในหมวดนี้',
+                      ),
+                    )
+                  : _shopGrid(listed),
+            ),
+          ],
+        );
+      },
     );
   }
+}
+
+/// ช่องค้นหาบนหน้าแรก — กดแล้วกระโดดไปแท็บค้นหา
+class _HomeSearchBox extends StatelessWidget {
+  const _HomeSearchBox();
+
+  @override
+  Widget build(BuildContext context) {
+    return SearchPill(
+      onTap: () => context.findAncestorStateOfType<_BuyerShellState>()?.goToTab(1),
+    );
+  }
+}
+
+/// แถบชิปหมวดหมู่ที่ค้างอยู่บนสุดเวลาเลื่อน (พื้นหลังค่อย ๆ ทึบขึ้น)
+///
+/// ความสูงเผื่อแถบสถานะไว้ด้วย เวลาแถบค้างบนสุดชิปจะได้ไม่ไปซ้อนกับนาฬิกา
+class _CategoryBar extends SliverPersistentHeaderDelegate {
+  final List<String> categories;
+  final String selected;
+  final String Function(String) thumb;
+  final ValueChanged<String> onSelect;
+  final double topInset;
+
+  _CategoryBar({
+    required this.categories,
+    required this.selected,
+    required this.thumb,
+    required this.onSelect,
+    required this.topInset,
+  });
+
+  static const double _barHeight = 76;
+
+  @override
+  double get minExtent => _barHeight + topInset;
+  @override
+  double get maxExtent => _barHeight + topInset;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final t = (shrinkOffset / 40).clamp(0.0, 1.0);
+    return Container(
+      color: AppColors.bg.withValues(alpha: t),
+      alignment: Alignment.bottomCenter,
+      child: SizedBox(
+        height: _barHeight,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          clipBehavior: Clip.none,
+          itemCount: categories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (_, i) {
+            final c = categories[i];
+            return Center(
+              child: CategoryPill(
+                label: c,
+                icon: _categoryIcon(c),
+                imageUrl: thumb(c),
+                selected: c == selected,
+                onTap: () => onSelect(c),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _CategoryBar old) =>
+      old.selected != selected ||
+      old.categories.length != categories.length ||
+      old.topInset != topInset;
 }
 
 // ---------------- SEARCH ----------------
@@ -104,6 +316,7 @@ class _BuyerSearchState extends State<_BuyerSearch> {
   String _cat = 'ทั้งหมด';
   String _sort = 'rating'; // rating | name
   bool _favOnly = false;
+  bool _openOnly = false;
 
   List<Shop> _filtered() {
     final ql = _q.trim().toLowerCase();
@@ -115,7 +328,8 @@ class _BuyerSearchState extends State<_BuyerSearch> {
           s.ownerName.toLowerCase().contains(ql);
       final okC = _cat == 'ทั้งหมด' || s.category == _cat;
       final okF = !_favOnly || appState.isFavorite(s.id);
-      return okQ && okC && okF;
+      final okO = !_openOnly || s.status == 'open';
+      return okQ && okC && okF && okO;
     }).toList();
     if (_sort == 'name') {
       shops.sort((a, b) => a.name.compareTo(b.name));
@@ -125,105 +339,140 @@ class _BuyerSearchState extends State<_BuyerSearch> {
     return shops;
   }
 
+  Future<void> _openSortMenu() async {
+    final v = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 14),
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: AppColors.border, borderRadius: BorderRadius.circular(4)),
+            ),
+            const SizedBox(height: 14),
+            ListTile(
+              leading: Icon(Icons.star_rounded, color: AppColors.accent),
+              title: const Text('คะแนนสูงสุด'),
+              trailing: _sort == 'rating' ? Icon(Icons.check_rounded, color: AppColors.primary) : null,
+              onTap: () => Navigator.pop(context, 'rating'),
+            ),
+            ListTile(
+              leading: Icon(Icons.sort_by_alpha_rounded, color: AppColors.primary),
+              title: const Text('ชื่อ ก–ฮ'),
+              trailing: _sort == 'name' ? Icon(Icons.check_rounded, color: AppColors.primary) : null,
+              onTap: () => Navigator.pop(context, 'name'),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+    if (v != null) setState(() => _sort = v);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cats = ['ทั้งหมด', 'อาหาร', 'ผักสด', 'ผลไม้', 'ผัก / ผลไม้', 'ประมง', 'เครื่องดื่ม'];
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: _SearchBox(onChanged: (v) => setState(() => _q = v)),
-        ),
-        SizedBox(
-          height: 44,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            children: cats.map((c) {
-              final on = c == _cat;
-              return Padding(
-                padding: EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(c),
-                  selected: on,
-                  onSelected: (_) => setState(() => _cat = c),
-                  selectedColor: AppColors.primary,
-                  labelStyle: TextStyle(color: on ? Colors.white : AppColors.muted, fontWeight: FontWeight.w600),
-                  backgroundColor: AppColors.surface,
-                  side: BorderSide(color: AppColors.border),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        Expanded(
-          child: ListenableBuilder(
-            listenable: appState,
-            builder: (_, __) {
-              final shops = _filtered();
-              return Column(
-                children: [
-                  // แถบผลลัพธ์ + ตัวกรอง/เรียงลำดับ
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16, 8, 8, 4),
-                    child: Row(children: [
-                      Text('พบ ${shops.length} ร้าน',
-                          style: TextStyle(color: AppColors.muted, fontSize: 12.5, fontWeight: FontWeight.w600)),
-                      Spacer(),
-                      if (appState.isLoggedIn)
-                        FilterChip(
-                          label: Text('โปรด'),
-                          avatar: Icon(
-                            _favOnly ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                            size: 16,
-                            color: _favOnly ? Colors.white : AppColors.bad,
-                          ),
+    return ListenableBuilder(
+      listenable: appState,
+      builder: (context, _) {
+        final cats = _categories(appState.shops);
+        if (!cats.contains(_cat)) _cat = 'ทั้งหมด';
+        final shops = _filtered();
+
+        return SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                child: SearchPill(onChanged: (v) => setState(() => _q = v)),
+              ),
+              // แถวตัวกรอง: ปุ่มกลมทึบ + ชิปเงื่อนไข (แบบเดียวกับหน้าค้นหาในแอปช้อปปิ้ง)
+              SizedBox(
+                height: 44,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    CircleIconButton(Icons.tune_rounded,
+                        size: 40, solid: true, tooltip: 'เรียงลำดับ', onTap: _openSortMenu),
+                    const SizedBox(width: 8),
+                    FilterPill(_sort == 'name' ? 'ชื่อ ก–ฮ' : 'คะแนนสูงสุด',
+                        dropdown: true, onTap: _openSortMenu),
+                    const SizedBox(width: 8),
+                    if (appState.isLoggedIn) ...[
+                      FilterPill('ร้านที่ติดตาม',
                           selected: _favOnly,
-                          onSelected: (v) => setState(() => _favOnly = v),
-                          selectedColor: AppColors.bad,
-                          labelStyle: TextStyle(
-                              color: _favOnly ? Colors.white : AppColors.muted, fontWeight: FontWeight.w600, fontSize: 12.5),
-                          backgroundColor: AppColors.surface,
-                          side: BorderSide(color: AppColors.border),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      PopupMenuButton<String>(
-                        tooltip: 'เรียงลำดับ',
-                        onSelected: (v) => setState(() => _sort = v),
-                        itemBuilder: (_) => [
-                          CheckedPopupMenuItem(value: 'rating', checked: _sort == 'rating', child: Text('คะแนนสูงสุด')),
-                          CheckedPopupMenuItem(value: 'name', checked: _sort == 'name', child: Text('ชื่อ ก–ฮ')),
-                        ],
+                          icon: Icons.favorite_rounded,
+                          onTap: () => setState(() => _favOnly = !_favOnly)),
+                      const SizedBox(width: 8),
+                    ],
+                    FilterPill('เปิดขายอยู่',
+                        selected: _openOnly,
+                        onTap: () => setState(() => _openOnly = !_openOnly)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 64,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: cats.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (_, i) => Center(
+                    child: CategoryPill(
+                      label: cats[i],
+                      icon: _categoryIcon(cats[i]),
+                      imageUrl: _categoryThumb(appState.shops, cats[i]),
+                      selected: cats[i] == _cat,
+                      onTap: () => setState(() => _cat = cats[i]),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                child: Row(children: [
+                  Text('พบ ${shops.length} ร้าน',
+                      style: TextStyle(
+                          color: AppColors.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+              Expanded(
+                child: shops.isEmpty
+                    ? Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.swap_vert_rounded, size: 18, color: AppColors.primary),
-                            SizedBox(width: 2),
-                            Text(_sort == 'name' ? 'ชื่อ' : 'คะแนน',
-                                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12.5)),
-                          ]),
-                        ),
-                      ),
-                    ]),
-                  ),
-                  Expanded(
-                    child: shops.isEmpty
-                        ? Center(child: Text(
+                          padding: const EdgeInsets.all(32),
+                          child: Text(
                             _favOnly ? 'ยังไม่มีร้านโปรดที่ตรงเงื่อนไข' : 'ไม่พบร้านค้าที่ค้นหา',
-                            style: TextStyle(color: AppColors.muted)))
-                        : ListView.separated(
-                            padding: EdgeInsets.fromLTRB(16, 4, 16, 16),
-                            itemCount: shops.length,
-                            separatorBuilder: (_, __) => SizedBox(height: 10),
-                            itemBuilder: (_, i) => ShopRow(shop: shops[i]),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.muted),
                           ),
-                  ),
-                ],
-              );
-            },
+                        ),
+                      )
+                    : CustomScrollView(
+                        slivers: [
+                          SliverPadding(
+                            padding: EdgeInsets.fromLTRB(16, 0, 16, navBarInset(context)),
+                            sliver: _shopGrid(shops),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -241,140 +490,71 @@ class _BuyerMapState extends State<_BuyerMap> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: EdgeInsets.all(16),
-      children: [
-        AppCard(
-          child: MarketMap(
-            stalls: appState.stalls,
-            selectedId: _sel?.id,
-            // ผู้บริโภคสนใจว่า "จะไปซื้ออะไร" มากกว่าเลขโซน จึงแยกตามหมวด
-            grouping: MapGrouping.category,
-            onTap: (s) => setState(() => _sel = s),
-          ),
-        ),
-        if (_sel != null) ...[
-          SizedBox(height: 14),
+    return SafeArea(
+      bottom: false,
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, navBarInset(context)),
+        children: [
+          const PageHeading('แผนที่ตลาด'),
+          const SizedBox(height: 4),
+          Text('แตะที่แผงเพื่อดูว่าใครขายอะไรอยู่ตรงไหน',
+              style: TextStyle(color: AppColors.muted, fontSize: 13)),
+          const SizedBox(height: 16),
           AppCard(
-            child: Row(children: [
-              IconChip(Icons.storefront_rounded,
-                  color: AppColors.primary, bg: AppColors.leafSoft),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('แผง ${_sel!.id}${_sel!.shopName != null ? " · ${_sel!.shopName}" : ""}',
-                        style: TextStyle(fontWeight: FontWeight.w800)),
-                    Text(
-                        _sel!.isEmpty
-                            ? 'แผงว่าง · ${_sel!.positionLabel}'
-                            : '${_sel!.categoryLabel} · ${_sel!.positionLabel}',
-                        style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
-                  ],
-                ),
-              ),
-              StatusPill(
-                _sel!.isEmpty ? 'ว่าง' : (_sel!.status == 'due' ? 'ค้างชำระ' : (_sel!.status == 'closed' ? 'ปิดปรับปรุง' : 'เปิดขาย')),
-                tone: _sel!.isEmpty ? 'muted' : (_sel!.status == 'due' ? 'warn' : (_sel!.status == 'closed' ? 'bad' : 'ok')),
-              ),
-            ]),
+            child: MarketMap(
+              stalls: appState.stalls,
+              selectedId: _sel?.id,
+              onTap: (s) => setState(() => _sel = s),
+            ),
           ),
+          if (_sel != null) ...[
+            const SizedBox(height: 14),
+            AppCard(
+              child: Row(children: [
+                IconChip(Icons.storefront_rounded,
+                    color: AppColors.primary, bg: AppColors.leafSoft),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('แผง ${_sel!.id}${_sel!.shopName != null ? " · ${_sel!.shopName}" : ""}',
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      Text(
+                          _sel!.isEmpty
+                              ? 'แผงว่าง · ${_sel!.positionLabel}'
+                              : '${_sel!.categoryLabel} · ${_sel!.positionLabel}',
+                          style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
+                    ],
+                  ),
+                ),
+                StatusPill(
+                  _sel!.isEmpty
+                      ? 'ว่าง'
+                      : (_sel!.status == 'due'
+                          ? 'ค้างชำระ'
+                          : (_sel!.status == 'closed' ? 'ปิดปรับปรุง' : 'เปิดขาย')),
+                  tone: _sel!.isEmpty
+                      ? 'muted'
+                      : (_sel!.status == 'due'
+                          ? 'warn'
+                          : (_sel!.status == 'closed' ? 'bad' : 'ok')),
+                ),
+              ]),
+            ),
+          ],
         ],
-      ],
-    );
-  }
-}
-
-// ---------------- shared bits ----------------
-class _SearchBox extends StatelessWidget {
-  final ValueChanged<String>? onChanged;
-  const _SearchBox({this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      onChanged: onChanged,
-      readOnly: onChanged == null,
-      decoration: InputDecoration(
-        hintText: 'ค้นหาร้านค้า / สินค้า…',
-        prefixIcon: Icon(Icons.search_rounded),
-        contentPadding: EdgeInsets.symmetric(vertical: 0),
       ),
     );
   }
 }
 
-class _SeeAll extends StatelessWidget {
-  const _SeeAll();
-  @override
-  Widget build(BuildContext context) {
-    return Text('ดูทั้งหมด',
-        style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12.5));
-  }
-}
-
-class ShopRow extends StatelessWidget {
-  final Shop shop;
-  ShopRow({super.key, required this.shop});
+// ---------------- PROFILE ----------------
+class _BuyerProfile extends StatelessWidget {
+  const _BuyerProfile();
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: EdgeInsets.all(12),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopDetailScreen(shop: shop))),
-      child: Row(children: [
-        NetImage(url: shop.imageUrl, fallback: shop.icon, width: 52, height: 52, radius: 14),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(shop.name, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-              SizedBox(height: 3),
-              Row(children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(6)),
-                  child: Text(shop.hasStall ? shop.stallId : 'รอจองแผง', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                ),
-                SizedBox(width: 6),
-                Text(shop.hasStall ? 'โซน ${shop.zone} · ${shop.category}' : shop.category,
-                    style: TextStyle(fontSize: 11.5, color: AppColors.muted)),
-              ]),
-            ],
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Row(children: [
-              Icon(Icons.star_rounded, size: 15, color: AppColors.accent),
-              SizedBox(width: 2),
-              Text('${shop.rating}', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5)),
-            ]),
-            ListenableBuilder(
-              listenable: appState,
-              builder: (_, __) {
-                if (!appState.isLoggedIn) return SizedBox(height: 4);
-                final fav = appState.isFavorite(shop.id);
-                return InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () => appState.toggleFavorite(shop.id),
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 6, left: 8),
-                    child: Icon(
-                      fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      size: 20,
-                      color: fav ? AppColors.bad : AppColors.faint,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ]),
-    );
+    return const SafeArea(bottom: false, child: ProfileTab());
   }
 }

@@ -33,6 +33,25 @@ class AppConfig {
 
   static bool get payInfoReady => payPromptPay.isNotEmpty || payBankAccount.isNotEmpty;
 
+  // ---- LINE Official Account (แจ้งเตือนเข้าไลน์) ----
+  // แอปไม่ได้คุยกับ LINE ตรง ๆ เพราะ Channel Access Token ต้องเป็นความลับ
+  // (เว็บ Flutter ถูกเปิดอ่านโค้ดได้ ใครได้ token ไปก็ส่งข้อความในนามตลาดได้)
+  // จึงมีตัวกลางเล็ก ๆ อยู่ที่ server/ deploy บน Vercel เก็บ token ไว้ฝั่งนั้น
+  //
+  // วิธีตั้งค่า:
+  //   1) deploy โฟลเดอร์ server/ ขึ้น Vercel แล้วเอา URL มาใส่ lineApiBase
+  //      (ไม่ต้องมี / ปิดท้าย เช่น https://maejo-market-line.vercel.app)
+  //   2) LINE OA Manager > ข้อมูลบัญชี > คัดลอกลิงก์เพิ่มเพื่อน มาใส่ lineAddFriendUrl
+  //
+  // เว้นว่างไว้ได้ — แอปจะทำงานปกติทุกอย่าง แค่ไม่มีเมนูเชื่อมต่อ LINE
+  static const String lineApiBase = 'https://maejo-market-line.vercel.app';
+  static const String lineAddFriendUrl = 'https://line.me/R/ti/p/@002uamym';
+
+  static bool get lineReady => lineApiBase.isNotEmpty && lineAddFriendUrl.isNotEmpty;
+
+  /// อายุรหัสผูกบัญชี — สั้นพอที่รหัสหลุดไปแล้วเอาไปใช้ไม่ทัน
+  static const Duration lineLinkCodeTtl = Duration(minutes: 15);
+
   /// จำนวนวันต่อรอบบิล — ค่าเช่ารายเดือนคิดจากราคาแผงต่อวัน x ค่านี้
   static const int billingDays = 30;
 

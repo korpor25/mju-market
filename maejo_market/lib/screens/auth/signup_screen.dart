@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../data/demo_data.dart';
 import '../../models/app_user.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
@@ -21,9 +20,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   final _phone = TextEditingController();
-  final _shopName = TextEditingController();
-  final _shopDesc = TextEditingController();
-  String? _shopCategory;
 
   bool _obscure = true;
   bool _agree = false;
@@ -33,7 +29,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
-    for (final c in [_name, _email, _password, _confirm, _phone, _shopName, _shopDesc]) {
+    for (final c in [_name, _email, _password, _confirm, _phone]) {
       c.dispose();
     }
     super.dispose();
@@ -45,19 +41,15 @@ class _SignupScreenState extends State<SignupScreen> {
       showSnack(context, 'กรุณายอมรับข้อกำหนดและเงื่อนไข', bad: true);
       return;
     }
-    if (_isSeller && (_shopCategory == null)) {
-      showSnack(context, 'กรุณาเลือกประเภทร้านค้า', bad: true);
-      return;
-    }
     setState(() => _busy = true);
+    // สมัครแค่บัญชี — คำขอเปิดร้านยื่นทีหลังในหน้าผู้ขาย หลังเชื่อม LINE แล้ว
+    // ไม่งั้นแอดมินอาจอนุมัติก่อนผู้ขายเชื่อม LINE แจ้งเตือนผลอนุมัติจะไม่ถึงไลน์
     final err = await appState.signUp(
       name: _name.text.trim(),
       email: _email.text,
       password: _password.text,
       phone: _phone.text.trim(),
       role: _role,
-      shopName: _isSeller ? _shopName.text.trim() : null,
-      shopCategory: _shopCategory,
     );
     if (!mounted) return;
     setState(() => _busy = false);
@@ -65,7 +57,7 @@ class _SignupScreenState extends State<SignupScreen> {
       showSnack(context, err, bad: true);
     } else {
       showSnack(context,
-          _isSeller ? 'สมัครสำเร็จ! ร้านของคุณรอผู้ดูแลระบบอนุมัติ' : 'สมัครสมาชิกสำเร็จ 🎉');
+          _isSeller ? 'สมัครสำเร็จ! ต่อไปเชื่อม LINE แล้วยื่นขอเปิดร้าน' : 'สมัครสมาชิกสำเร็จ 🎉');
       Navigator.of(context).popUntil((r) => r.isFirst);
     }
   }
@@ -135,27 +127,29 @@ class _SignupScreenState extends State<SignupScreen> {
                     _field(_phone, _isSeller ? 'เบอร์โทรศัพท์ *' : 'เบอร์โทรศัพท์ (ไม่บังคับ)', Icons.phone_outlined,
                         keyboard: TextInputType.phone,
                         validator: (v) => (_isSeller && (v == null || v.trim().isEmpty)) ? 'กรอกเบอร์โทรศัพท์' : null),
-                    if (_isSeller) ...[
-                      SizedBox(height: 6),
-                      _label('3. ข้อมูลร้านค้า'),
-                      _field(_shopName, 'ชื่อร้านค้า *', Icons.storefront_outlined,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'กรอกชื่อร้านค้า' : null),
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 12),
-                        child: DropdownButtonFormField<String>(
-                          value: _shopCategory,
-                          decoration: InputDecoration(
-                            hintText: 'ประเภทร้านค้า *',
-                            prefixIcon: Icon(Icons.sell_outlined),
-                          ),
-                          items: DemoData.categories
-                              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                              .toList(),
-                          onChanged: (v) => setState(() => _shopCategory = v),
+                    if (_isSeller)
+                      Container(
+                        margin: EdgeInsets.only(top: 2, bottom: 8),
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.leafSoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'สมัครเสร็จแล้ว ขั้นต่อไปคือเชื่อม LINE ของตลาด '
+                                'แล้วจึงกรอกข้อมูลร้านเพื่อยื่นขอเปิดร้าน',
+                                style: TextStyle(fontSize: 12.5, color: AppColors.text, height: 1.4),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      _field(_shopDesc, 'รายละเอียดร้านค้า (ไม่บังคับ)', Icons.notes_outlined),
-                    ],
                     SizedBox(height: 4),
                     CheckboxListTile(
                       value: _agree,

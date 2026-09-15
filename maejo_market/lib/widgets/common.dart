@@ -24,11 +24,11 @@ String thousands(int n) {
 /// จำนวนเงินบาท เช่น 12000 -> ฿12,000 (ปัดเป็นจำนวนเต็ม)
 String money(num v) => '฿${thousands(v.round())}';
 
-/// โลโก้แอป (ไอคอนร้าน + ใบไม้)
+/// โลโก้แอป (ภาพ assets/images/logo.png — มุมนอกกรอบโปร่งใสอยู่แล้ว)
 class AppLogo extends StatelessWidget {
   final double size;
   final bool showText;
-  AppLogo({super.key, this.size = 72, this.showText = true});
+  const AppLogo({super.key, this.size = 72, this.showText = true});
 
   @override
   Widget build(BuildContext context) {
@@ -39,17 +39,17 @@ class AppLogo extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            gradient: brandGradient,
-            borderRadius: BorderRadius.circular(size * 0.28),
+            borderRadius: BorderRadius.circular(size * 0.06),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.28),
+                color: AppColors.primary.withValues(alpha: 0.22),
                 blurRadius: 22,
                 offset: Offset(0, 10),
               ),
             ],
           ),
-          child: Icon(Icons.storefront_rounded, color: Colors.white, size: size * 0.5),
+          child: Image.asset('assets/images/logo.png',
+              width: size, height: size, filterQuality: FilterQuality.medium),
         ),
         if (showText) ...[
           SizedBox(height: size * 0.18),
@@ -111,7 +111,7 @@ class _AppCardState extends State<AppCard> {
       padding: widget.padding,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _pressed ? AppColors.primaryLight : AppColors.border),
         boxShadow: [
           BoxShadow(
@@ -130,9 +130,9 @@ class _AppCardState extends State<AppCard> {
       curve: Curves.easeOut,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: widget.onTap,
           onHighlightChanged: (v) => setState(() => _pressed = v),
           child: content,
