@@ -386,10 +386,25 @@ class RatingLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ร้านที่ยังไม่มีรีวิวต้องไม่มีดาวขึ้นเลย ไม่งั้นดูเหมือนมีคนให้คะแนนมาแล้ว
+    if (count <= 0) {
+      // การ์ดในตารางกว้างแค่ราว 170px ข้อความจึงต้องสั้นและตัดท้ายได้
+      return Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.fiber_new_rounded, size: size + 3, color: AppColors.muted),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text('ยังไม่มีรีวิว',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: size - 0.5, fontWeight: FontWeight.w700, color: AppColors.muted)),
+        ),
+      ]);
+    }
     return Row(mainAxisSize: MainAxisSize.min, children: [
       StarRow(rating: rating, size: size),
       const SizedBox(width: 5),
-      Text(count > 0 ? '($count)' : '(ใหม่)',
+      Text('($count)',
           style: TextStyle(
               fontSize: size - 0.5, fontWeight: FontWeight.w700, color: AppColors.muted)),
     ]);

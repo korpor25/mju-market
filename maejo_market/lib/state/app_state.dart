@@ -25,6 +25,13 @@ class AppState extends ChangeNotifier {
   bool ready = false;
   AppUser? user;
 
+  /// เข้าชมตลาดโดยไม่ลงทะเบียน — เห็นร้าน สินค้า ผังตลาด และโปรโมชั่นได้ทั้งหมด
+  /// แต่ทำสิ่งที่ผูกกับบัญชีไม่ได้ (ติดตามร้าน รีวิว แจ้งเตือน เปิดร้าน)
+  bool guest = false;
+
+  /// กำลังเข้าชมแบบไม่ลงทะเบียนอยู่จริง (ล็อกอินแล้ว = ไม่ใช่ผู้เยี่ยมชมอีกต่อไป)
+  bool get isGuest => guest && user == null;
+
   List<Shop> shops = [];
   List<MarketRequest> requests = [];
   List<Stall> stalls = [];
@@ -32,6 +39,14 @@ class AppState extends ChangeNotifier {
 
   /// ร้านทั้งหมดที่ผู้ใช้คนนี้เป็นเจ้าของ (คนหนึ่งเปิดได้หลายร้าน)
   List<Shop> myShops = [];
+
+  /// ร้านที่อยู่บนแผงนี้ — null = แผงว่าง หรือร้านถูกลบไปแล้วแต่แผงยังค้างชื่อไว้
+  Shop? shopOfStall(String stallId) {
+    for (final s in shops) {
+      if (s.stallId == stallId) return s;
+    }
+    return null;
+  }
 
   // ข้อมูลของผู้ขายที่ล็อกอิน
   Shop? myShop;
@@ -132,7 +147,13 @@ class AppState extends ChangeNotifier {
       await _fb.init();
       _fb.watchAuth((u) async {
         user = u;
-        if (u != null) await _loadData();
+        // ล็อกอินแล้วก็ไม่ใช่ผู้เยี่ยมชมอีก ไม่งั้นออกจากระบบแล้วจะค้างอยู่ในตลาดแทนหน้าล็อกอิน
+        if (u != null) guest = false;
+        if (u != null) {
+          await _loadData();
+        } else if (guest) {
+          await _loadPublicData();
+        }
         ready = true;
         notifyListeners();
       });
@@ -162,12 +183,13 @@ class AppState extends ChangeNotifier {
     return list;
   }
 
-  Future<void> _loadData() async {
+  /// ข้อมูลที่กฎ Firestore เปิดให้ทุกคนอ่าน — ผู้เยี่ยมชมที่ยังไม่ล็อกอินก็เห็นชุดนี้
+  Future<void> _loadPublicData() async {
     if (_fb == null) return;
     shops = await _fb.fetchShops();
-    requests = await _fb.fetchRequests();
+    // ไม่มี fallback ไปข้อมูลจำลอง — ถ้า Firestore ยังไม่มีแผง ผังต้องว่างจริง ๆ
+    // (แอดมินมีปุ่ม "สร้างแผงตามผังตลาด" ในหน้าจัดการแผงไว้เติมให้ครบ)
     stalls = await _fb.fetchStalls();
-    if (stalls.isEmpty) stalls = DemoData.stalls();
     // แบนเนอร์เป็นของเสริม — ถ้า rules ยังไม่ได้ deploy หรือปฏิเสธ
     // ต้องไม่ทำให้ข้อมูลที่เหลือ (ร้าน/สินค้า/แจ้งเตือน) โหลดไม่ขึ้นไปด้วย
     try {
@@ -175,6 +197,12 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       banners = [];
     }
+  }
+
+  Future<void> _loadData() async {
+    if (_fb == null) return;
+    await _loadPublicData();
+    requests = await _fb.fetchRequests();
 
     final u = user;
     // ผู้ขาย: ร้านของตัวเองดูจาก ownerUid ไม่ใช่จากรหัสร้าน = uid แบบเดิม
@@ -215,10 +243,17 @@ class AppState extends ChangeNotifier {
   }
 
   /// รีเฟรชเฉพาะการแจ้งเตือน (เรียกตอนเปิดกระดิ่ง / pull-to-refresh)
+  ///
+  /// โหลดไม่ได้ (เน็ตหลุด/สิทธิ์ไม่พอ) ให้คงรายการเดิมไว้ ดีกว่าทำให้ปุ่มกระดิ่งพังทั้งปุ่ม
   Future<void> refreshNotifications() async {
     final u = user;
     if (_fb != null && u != null) {
-      notifications = await _fb.fetchNotifications(u.uid);
+      try {
+        notifications = await _fb.fetchNotifications(u.uid);
+      } catch (e) {
+        debugPrint('fetchNotifications failed: $e');
+        return;
+      }
       notifyListeners();
     }
   }
@@ -235,7 +270,14 @@ class AppState extends ChangeNotifier {
 
   Future<void> markAllNotificationsRead() async {
     final u = user;
-    if (_fb != null && u != null) await _fb.markAllNotificationsRead(u.uid);
+    if (_fb != null && u != null) {
+      try {
+        await _fb.markAllNotificationsRead(u.uid);
+      } catch (e) {
+        // ทำเครื่องหมายว่าอ่านไม่สำเร็จ ไม่ใช่เรื่องที่ต้องเด้ง error ใส่ผู้ใช้
+        debugPrint('markAllNotificationsRead failed: $e');
+      }
+    }
     notifications = notifications
         .map((n) => AppNotification(id: n.id, uid: n.uid, title: n.title, body: n.body, read: true, createdAt: n.createdAt))
         .toList();
@@ -276,6 +318,27 @@ class AppState extends ChangeNotifier {
   }
 
   // ---------------- AUTH ----------------
+
+  /// เข้าชมตลาดโดยไม่ลงทะเบียน — พาเข้าหน้าร้านค้าทันทีแล้วค่อยเติมข้อมูลตามมา
+  /// (ข้อมูลสาธารณะอาจโหลดไว้แล้วจากรอบก่อน จึงไม่ควรกั้นหน้าจอไว้รอ)
+  Future<void> continueAsGuest() async {
+    if (user != null) return;
+    guest = true;
+    notifyListeners();
+    try {
+      await _loadPublicData();
+    } catch (e) {
+      debugPrint('guest load failed: $e');
+    }
+    notifyListeners();
+  }
+
+  /// ออกจากโหมดผู้เยี่ยมชมกลับไปหน้าเข้าสู่ระบบ (ข้อมูลตลาดที่โหลดไว้ใช้ต่อได้)
+  void leaveGuest() {
+    if (!guest) return;
+    guest = false;
+    notifyListeners();
+  }
 
   /// คืนค่า null = สำเร็จ, หรือข้อความ error (ภาษาไทย)
   Future<String?> signIn(String email, String password) async {
@@ -344,6 +407,7 @@ class AppState extends ChangeNotifier {
   Future<void> signOut() async {
     if (_fb != null) await _fb.signOut();
     user = null;
+    guest = false;
     notifyListeners();
   }
 
@@ -661,8 +725,12 @@ class AppState extends ChangeNotifier {
     final shopId = myShop?.id;
     if (shopId == null) return 'ยังไม่มีร้าน — รอผู้ดูแลระบบอนุมัติก่อน';
     if (_fb != null) {
-      final p = await _fb.addProduct(shopId, name, price, imageUrl: imageUrl);
-      products = [p, ...products];
+      try {
+        final p = await _fb.addProduct(shopId, name, price, imageUrl: imageUrl);
+        products = [p, ...products];
+      } catch (e) {
+        return 'เพิ่มสินค้าไม่สำเร็จ: $e';
+      }
     } else {
       products = [
         Product(id: 'p-${DateTime.now().millisecondsSinceEpoch}', shopId: shopId, name: name, price: price, imageUrl: imageUrl),
@@ -880,6 +948,60 @@ class AppState extends ChangeNotifier {
     final all = _demoReviews.values.expand((e) => e).toList();
     all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return all;
+  }
+
+  // ---------------- INSPECTIONS (ตรวจมาตรฐานร้าน) ----------------
+
+  /// ผลตรวจใน Demo Mode (ไม่มี Firestore ให้เขียน)
+  final List<Map<String, dynamic>> _demoInspections = [];
+
+  /// บันทึกผลการตรวจมาตรฐานร้าน — คืน null = สำเร็จ
+  Future<String?> saveInspection({
+    required String shopId,
+    required String shopName,
+    required Map<String, int> scores,
+    required String note,
+  }) async {
+    final u = user;
+    if (u == null) return 'กรุณาเข้าสู่ระบบก่อน';
+    if (scores.values.any((v) => v < 1)) return 'ให้คะแนนให้ครบทุกข้อก่อนบันทึก';
+    final avg = scores.values.reduce((a, b) => a + b) / scores.length;
+    try {
+      if (_fb != null) {
+        await _fb.saveInspection(
+          shopId: shopId,
+          shopName: shopName,
+          scores: scores,
+          avg: double.parse(avg.toStringAsFixed(2)),
+          note: note.trim(),
+          byUid: u.uid,
+          byName: u.name,
+        );
+      } else {
+        _demoInspections.insert(0, {
+          'id': 'ins-${DateTime.now().millisecondsSinceEpoch}',
+          'shopId': shopId,
+          'shopName': shopName,
+          'scores': scores,
+          'avg': double.parse(avg.toStringAsFixed(2)),
+          'note': note.trim(),
+          'byUid': u.uid,
+          'byName': u.name,
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        });
+      }
+    } catch (e) {
+      return 'บันทึกไม่สำเร็จ: $e';
+    }
+    notifyListeners();
+    return null;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchInspections({String? shopId}) async {
+    if (_fb != null) return _fb.fetchInspections(shopId: shopId);
+    return shopId == null
+        ? [..._demoInspections]
+        : _demoInspections.where((e) => e['shopId'] == shopId).toList();
   }
 
   // ---------------- FAVORITES (ร้านที่ติดตาม) ----------------

@@ -3,7 +3,9 @@ import '../../models/app_user.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common.dart';
+import '../../widgets/wave_header.dart';
 
+/// หน้าสมัครสมาชิก — หัวจอทรงคลื่นชุดเดียวกับหน้าเข้าสู่ระบบ + ฟอร์มพื้นขาว
 class SignupScreen extends StatefulWidget {
   SignupScreen({super.key});
 
@@ -65,120 +67,196 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('สมัครสมาชิก')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 460),
-              child: Form(
-                key: _form,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    AppLogo(size: 64),
-                    SizedBox(height: 8),
-                    Center(
-                      child: Text('สร้างบัญชีเพื่อใช้งานแอป Maejo Market',
-                          style: TextStyle(color: AppColors.muted)),
+      backgroundColor: AppColors.surface,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
+              children: [
+                WaveHeader(
+                  height: 212,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const LogoBadge(size: 72),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'สร้างบัญชีใหม่',
+                        style: TextStyle(
+                            color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'สมัครเพื่อใช้งานแอป Maejo Market',
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.88), fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                      tooltip: 'ย้อนกลับ',
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    SizedBox(height: 20),
-                    _label('1. เลือกประเภทบัญชี'),
-                    Row(children: [
-                      Expanded(
-                        child: _RoleCard(
-                          selected: _role == UserRole.buyer,
-                          icon: Icons.person_outline_rounded,
-                          title: 'ผู้บริโภค',
-                          sub: '(ซื้อสินค้า)',
-                          onTap: () => setState(() => _role = UserRole.buyer),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Form(
+                    key: _form,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _label('1. เลือกประเภทบัญชี'),
+                        Row(children: [
+                          Expanded(
+                            child: _RoleCard(
+                              selected: _role == UserRole.buyer,
+                              icon: Icons.person_outline_rounded,
+                              title: 'ผู้บริโภค',
+                              sub: '(ซื้อสินค้า)',
+                              onTap: () => setState(() => _role = UserRole.buyer),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _RoleCard(
+                              selected: _role == UserRole.seller,
+                              icon: Icons.storefront_outlined,
+                              title: 'ผู้ขาย',
+                              sub: '(เปิดร้านค้า)',
+                              onTap: () => setState(() => _role = UserRole.seller),
+                            ),
+                          ),
+                        ]),
+                        SizedBox(height: 20),
+                        _label('2. ข้อมูลส่วนตัว'),
+                        UnderlineField(
+                          controller: _name,
+                          label: 'ชื่อ-นามสกุล *',
+                          hint: 'เช่น สมชาย ใจดี',
+                          validator: (v) =>
+                              (v == null || v.trim().isEmpty) ? 'กรอกชื่อ-นามสกุล' : null,
                         ),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: _RoleCard(
-                          selected: _role == UserRole.seller,
-                          icon: Icons.storefront_outlined,
-                          title: 'ผู้ขาย',
-                          sub: '(เปิดร้านค้า)',
-                          onTap: () => setState(() => _role = UserRole.seller),
+                        UnderlineField(
+                          controller: _email,
+                          label: 'อีเมล *',
+                          hint: 'you@example.com',
+                          keyboard: TextInputType.emailAddress,
+                          validator: (v) =>
+                              (v == null || !v.contains('@')) ? 'กรอกอีเมลให้ถูกต้อง' : null,
                         ),
-                      ),
-                    ]),
-                    SizedBox(height: 18),
-                    _label('2. ข้อมูลส่วนตัว'),
-                    _field(_name, 'ชื่อ-นามสกุล *', Icons.person_outline,
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'กรอกชื่อ-นามสกุล' : null),
-                    _field(_email, 'อีเมล *', Icons.mail_outline,
-                        keyboard: TextInputType.emailAddress,
-                        validator: (v) => (v == null || !v.contains('@')) ? 'กรอกอีเมลให้ถูกต้อง' : null),
-                    _field(_password, 'รหัสผ่าน *', Icons.lock_outline,
-                        obscure: _obscure,
-                        suffix: IconButton(
-                          icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                          onPressed: () => setState(() => _obscure = !_obscure),
+                        UnderlineField(
+                          controller: _password,
+                          label: 'รหัสผ่าน *',
+                          hint: 'อย่างน้อย 6 ตัวอักษร',
+                          obscure: _obscure,
+                          suffix: IconButton(
+                            iconSize: 20,
+                            color: AppColors.faint,
+                            icon: Icon(_obscure
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined),
+                            onPressed: () => setState(() => _obscure = !_obscure),
+                          ),
+                          validator: (v) =>
+                              (v == null || v.length < 6) ? 'อย่างน้อย 6 ตัวอักษร' : null,
                         ),
-                        helper: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
-                        validator: (v) => (v == null || v.length < 6) ? 'อย่างน้อย 6 ตัวอักษร' : null),
-                    _field(_confirm, 'ยืนยันรหัสผ่าน *', Icons.lock_outline,
-                        obscure: _obscure,
-                        validator: (v) => (v != _password.text) ? 'รหัสผ่านไม่ตรงกัน' : null),
-                    _field(_phone, _isSeller ? 'เบอร์โทรศัพท์ *' : 'เบอร์โทรศัพท์ (ไม่บังคับ)', Icons.phone_outlined,
-                        keyboard: TextInputType.phone,
-                        validator: (v) => (_isSeller && (v == null || v.trim().isEmpty)) ? 'กรอกเบอร์โทรศัพท์' : null),
-                    if (_isSeller)
-                      Container(
-                        margin: EdgeInsets.only(top: 2, bottom: 8),
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.leafSoft,
-                          borderRadius: BorderRadius.circular(12),
+                        UnderlineField(
+                          controller: _confirm,
+                          label: 'ยืนยันรหัสผ่าน *',
+                          hint: 'พิมพ์รหัสผ่านอีกครั้ง',
+                          obscure: _obscure,
+                          validator: (v) => (v != _password.text) ? 'รหัสผ่านไม่ตรงกัน' : null,
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        UnderlineField(
+                          controller: _phone,
+                          label: _isSeller ? 'เบอร์โทรศัพท์ *' : 'เบอร์โทรศัพท์ (ไม่บังคับ)',
+                          hint: '0XX-XXX-XXXX',
+                          keyboard: TextInputType.phone,
+                          validator: (v) => (_isSeller && (v == null || v.trim().isEmpty))
+                              ? 'กรอกเบอร์โทรศัพท์'
+                              : null,
+                        ),
+                        if (_isSeller)
+                          Container(
+                            margin: EdgeInsets.only(top: 2, bottom: 8),
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.leafSoft,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'สมัครเสร็จแล้ว ขั้นต่อไปคือเชื่อม LINE ของตลาด '
+                                    'แล้วจึงกรอกข้อมูลร้านเพื่อยื่นขอเปิดร้าน',
+                                    style: TextStyle(fontSize: 12.5, color: AppColors.text, height: 1.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        SizedBox(height: 4),
+                        CheckboxListTile(
+                          value: _agree,
+                          onChanged: (v) => setState(() => _agree = v ?? false),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text('ฉันยอมรับข้อกำหนดและเงื่อนไข และนโยบายความเป็นส่วนตัว',
+                              style: TextStyle(fontSize: 13)),
+                        ),
+                        SizedBox(height: 12),
+                        // ปุ่มคู่ชุดเดียวกับหน้าเข้าสู่ระบบ
+                        Row(
                           children: [
-                            Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
-                            SizedBox(width: 8),
                             Expanded(
-                              child: Text(
-                                'สมัครเสร็จแล้ว ขั้นต่อไปคือเชื่อม LINE ของตลาด '
-                                'แล้วจึงกรอกข้อมูลร้านเพื่อยื่นขอเปิดร้าน',
-                                style: TextStyle(fontSize: 12.5, color: AppColors.text, height: 1.4),
+                              child: ElevatedButton(
+                                onPressed: _busy ? null : _submit,
+                                child: _busy
+                                    ? SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white, strokeWidth: 2.4))
+                                    : FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(_isSeller ? 'สมัครสำหรับผู้ขาย' : 'สมัครสมาชิก'),
+                                      ),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: FittedBox(
+                                    fit: BoxFit.scaleDown, child: Text('เข้าสู่ระบบ')),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    SizedBox(height: 4),
-                    CheckboxListTile(
-                      value: _agree,
-                      onChanged: (v) => setState(() => _agree = v ?? false),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      title: Text('ฉันยอมรับข้อกำหนดและเงื่อนไข และนโยบายความเป็นส่วนตัว',
-                          style: TextStyle(fontSize: 13)),
+                      ],
                     ),
-                    SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: _busy ? null : _submit,
-                      child: _busy
-                          ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
-                          : Text(_isSeller ? 'สมัครสำหรับผู้ขาย' : 'สมัครสมาชิก'),
-                    ),
-                    SizedBox(height: 14),
-                    Center(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('มีบัญชีอยู่แล้ว? เข้าสู่ระบบ'),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -188,33 +266,6 @@ class _SignupScreenState extends State<SignupScreen> {
         padding: EdgeInsets.only(bottom: 10, top: 4),
         child: Text(t, style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
       );
-
-  Widget _field(
-    TextEditingController c,
-    String hint,
-    IconData icon, {
-    bool obscure = false,
-    Widget? suffix,
-    String? helper,
-    TextInputType? keyboard,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: c,
-        obscureText: obscure,
-        keyboardType: keyboard,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon),
-          suffixIcon: suffix,
-          helperText: helper,
-        ),
-        validator: validator,
-      ),
-    );
-  }
 }
 
 class _RoleCard extends StatelessWidget {

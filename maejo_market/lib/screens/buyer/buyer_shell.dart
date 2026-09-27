@@ -8,7 +8,9 @@ import '../../theme/theme_controller.dart';
 import '../../widgets/animations.dart';
 import '../../widgets/banner_carousel.dart';
 import '../../widgets/common.dart';
+import '../../widgets/guest_gate.dart';
 import '../../widgets/market_map.dart';
+import '../../widgets/stall_info_card.dart';
 import '../../widgets/notification_button.dart';
 import '../../widgets/shop_cards.dart';
 import '../../widgets/shop_ui.dart';
@@ -137,9 +139,11 @@ class _BuyerHomeState extends State<_BuyerHome> {
             ? shops
             : shops.where((s) => s.category == _cat).toList();
         final top = [...shops]..sort((a, b) => b.rating.compareTo(a.rating));
-        final avg = shops.isEmpty
+        // เฉลี่ยจากร้านที่มีรีวิวจริงเท่านั้น ร้านที่ยังไม่มีใครรีวิวไม่ควรถ่วงค่าเฉลี่ย
+        final rated = shops.where((s) => s.hasRating).toList();
+        final avg = rated.isEmpty
             ? 0.0
-            : shops.map((s) => s.rating).reduce((a, b) => a + b) / shops.length;
+            : rated.map((s) => s.rating).reduce((a, b) => a + b) / rated.length;
         final banners = appState.activeBanners;
         final heroImage = banners.isNotEmpty && banners.first.hasImage
             ? banners.first.imageUrl
@@ -153,14 +157,18 @@ class _BuyerHomeState extends State<_BuyerHome> {
                 title: 'Maejo Market',
                 subtitle: shops.isEmpty
                     ? 'ตลาดแม่โจ้'
-                    : '${avg.toStringAsFixed(1)} ★ · ${shops.length} ร้านค้า',
+                    : (rated.isEmpty
+                        ? '${shops.length} ร้านค้า'
+                        : '${avg.toStringAsFixed(1)} ★ · ${shops.length} ร้านค้า'),
                 leadingActions: const [ThemeToggleCircleButton()],
                 trailingActions: [
                   CircleIconButton(
                     Icons.favorite_border_rounded,
                     tooltip: 'ร้านที่ติดตาม',
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const FavoritesScreen())),
+                    onTap: () => appState.isGuest
+                        ? promptSignIn(context, 'การติดตามร้าน')
+                        : Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const FavoritesScreen())),
                   ),
                   const NotificationCircleButton(),
                 ],
@@ -181,6 +189,10 @@ class _BuyerHomeState extends State<_BuyerHome> {
               sliver: SliverList.list(
                 children: staggered([
                   const _HomeSearchBox(),
+                  if (appState.isGuest) ...[
+                    const SizedBox(height: 12),
+                    const GuestBanner(),
+                  ],
                   const SizedBox(height: 18),
                   if (top.isNotEmpty)
                     SoftPanel(
@@ -497,51 +509,20 @@ class _BuyerMapState extends State<_BuyerMap> {
         children: [
           const PageHeading('แผนที่ตลาด'),
           const SizedBox(height: 4),
-          Text('แตะที่แผงเพื่อดูว่าใครขายอะไรอยู่ตรงไหน',
+          Text('แตะที่แผงเพื่อดูว่าใครขายอะไรอยู่ตรงไหน (ผังนี้แสดงเฉพาะแผงที่มีร้าน)',
               style: TextStyle(color: AppColors.muted, fontSize: 13)),
           const SizedBox(height: 16),
           AppCard(
             child: MarketMap(
               stalls: appState.stalls,
               selectedId: _sel?.id,
+              hideEmpty: true,
               onTap: (s) => setState(() => _sel = s),
             ),
           ),
           if (_sel != null) ...[
             const SizedBox(height: 14),
-            AppCard(
-              child: Row(children: [
-                IconChip(Icons.storefront_rounded,
-                    color: AppColors.primary, bg: AppColors.leafSoft),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('แผง ${_sel!.id}${_sel!.shopName != null ? " · ${_sel!.shopName}" : ""}',
-                          style: const TextStyle(fontWeight: FontWeight.w800)),
-                      Text(
-                          _sel!.isEmpty
-                              ? 'แผงว่าง · ${_sel!.positionLabel}'
-                              : '${_sel!.categoryLabel} · ${_sel!.positionLabel}',
-                          style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
-                    ],
-                  ),
-                ),
-                StatusPill(
-                  _sel!.isEmpty
-                      ? 'ว่าง'
-                      : (_sel!.status == 'due'
-                          ? 'ค้างชำระ'
-                          : (_sel!.status == 'closed' ? 'ปิดปรับปรุง' : 'เปิดขาย')),
-                  tone: _sel!.isEmpty
-                      ? 'muted'
-                      : (_sel!.status == 'due'
-                          ? 'warn'
-                          : (_sel!.status == 'closed' ? 'bad' : 'ok')),
-                ),
-              ]),
-            ),
+            StallInfoCard(stall: _sel!),
           ],
         ],
       ),

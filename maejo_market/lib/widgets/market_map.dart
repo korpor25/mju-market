@@ -26,6 +26,10 @@ class MarketMap extends StatelessWidget {
   /// (หน้าจองแผงของผู้ขายส่ง `isBookable` ให้กดได้เฉพาะแผงว่าง)
   final bool Function(Stall)? canTap;
 
+  /// ซ่อนแผงว่างไปเลย — ฝั่งผู้ซื้อใช้ เพราะมาหาว่า "ร้านไหนอยู่ตรงไหน"
+  /// ช่องว่างที่ยังไม่มีคนเช่าเป็นข้อมูลของแอดมิน/ผู้ขาย ไม่ใช่ของผู้ซื้อ
+  final bool hideEmpty;
+
   const MarketMap({
     super.key,
     required this.stalls,
@@ -33,6 +37,7 @@ class MarketMap extends StatelessWidget {
     required this.onTap,
     this.showPrice = false,
     this.canTap,
+    this.hideEmpty = false,
   });
 
   /// สีตามสถานะแผง (ใช้ในหน้าจัดการแผงด้วย)
@@ -64,14 +69,41 @@ class MarketMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final byId = {for (final s in stalls) s.id: s};
+    final shown = hideEmpty ? stalls.where((s) => !s.isEmpty).toList() : stalls;
+    final byId = {for (final s in shown) s.id: s};
     // แผงที่แอดมินสร้างไว้แต่ไม่มีตำแหน่งในผัง — แสดงแยกด้านล่าง จะได้ไม่หายไป
-    final offPlan = stalls.where((s) => MarketLayout.slotOf(s.id) == null).toList()
+    final offPlan = shown.where((s) => MarketLayout.slotOf(s.id) == null).toList()
       ..sort((a, b) => a.zone == b.zone ? a.number.compareTo(b.number) : a.zone.compareTo(b.zone));
 
     final counts = <String, int>{'occupied': 0, 'empty': 0, 'due': 0, 'closed': 0};
-    for (final s in stalls) {
+    for (final s in shown) {
       counts[s.status] = (counts[s.status] ?? 0) + 1;
+    }
+
+    // ซ่อนแผงว่างแล้วไม่เหลืออะไรเลย = ตลาดยังไม่มีร้านเปิด ต้องบอกให้รู้
+    // ไม่ใช่ปล่อยให้เห็นผังเปล่า ๆ แล้วนึกว่าแอปพัง
+    if (hideEmpty && byId.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 34, horizontal: 20),
+        decoration: BoxDecoration(
+          color: AppColors.surface2.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.storefront_outlined, size: 40, color: AppColors.faint),
+            const SizedBox(height: 10),
+            Text('ยังไม่มีร้านเปิดขายในตลาด',
+                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.text)),
+            const SizedBox(height: 4),
+            Text('เมื่อมีร้านเช่าแผงแล้ว ตำแหน่งร้านจะขึ้นบนผังนี้',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
+          ],
+        ),
+      );
     }
 
     return Column(
@@ -79,6 +111,7 @@ class MarketMap extends StatelessWidget {
       children: [
         _Legend(
           counts: counts,
+          showEmpty: !hideEmpty,
           lockedHint: canTap == null ? 'แผงที่ยังไม่เปิดให้เช่า' : 'แผงไม่ว่าง / ยังไม่เปิด',
         ),
         const SizedBox(height: 14),
@@ -108,6 +141,7 @@ class MarketMap extends StatelessWidget {
                       selectedId: selectedId,
                       showPrice: showPrice,
                       canTap: canTap,
+                      hideEmpty: hideEmpty,
                       onTap: onTap,
                     ),
                   ),
@@ -134,6 +168,7 @@ class MarketMap extends StatelessWidget {
                   selectedId: selectedId,
                   showPrice: showPrice,
                   canTap: canTap,
+                  hideEmpty: hideEmpty,
                   onTap: onTap,
                 ),
               ),
@@ -146,8 +181,8 @@ class MarketMap extends StatelessWidget {
         if (offPlan.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text('แผงนอกผัง (${offPlan.length})',
-              style: TextStyle(
-                  fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.muted)),
+              style:
+                  TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.muted)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -195,12 +230,16 @@ class _PlanStack extends StatelessWidget {
   final bool Function(Stall)? canTap;
   final void Function(Stall) onTap;
 
+  /// true = ช่องที่ไม่มีร้านอยู่ ไม่ต้องวาดเลย (เหลือเป็นพื้นที่ว่างในย่าน)
+  final bool hideEmpty;
+
   const _PlanStack({
     required this.byId,
     required this.selectedId,
     required this.showPrice,
     required this.canTap,
     required this.onTap,
+    this.hideEmpty = false,
   });
 
   @override
@@ -221,30 +260,32 @@ class _PlanStack extends StatelessWidget {
         for (final sec in MarketLayout.sections) ..._sectionArea(sec),
 
         // แผงทีละช่อง — เว้นขอบรอบละนิดให้แต่ละแผงแยกกันชัด ไม่ติดเป็นพืด
+        // (โหมดซ่อนแผงว่าง byId มีเฉพาะแผงที่มีร้าน ช่องที่เหลือจึงถูกข้ามไป)
         for (final slot in MarketLayout.slots)
-          Positioned(
-            left: slot.x + kPlanSide,
-            top: slot.y + kPlanTop,
-            width: slot.w,
-            height: slot.h,
-            child: Padding(
-              padding: const EdgeInsets.all(2.5),
-              child: _StallTile(
-                id: slot.id,
-                stall: byId[slot.id],
-                tappable: byId[slot.id] != null && (canTap?.call(byId[slot.id]!) ?? true),
-                selected: slot.id == selectedId,
-                showPrice: showPrice,
-                // แผงสูงผอม (อาคารยาวหลังหมุนผัง) หมุนตัวอักษรตามแนวแผง จะได้ตัวใหญ่อ่านออก
-                vertical: slot.isTall,
-                small: slot.w < 60 || slot.h < 40,
-                onTap: () {
-                  final s = byId[slot.id];
-                  if (s != null) onTap(s);
-                },
+          if (!hideEmpty || byId[slot.id] != null)
+            Positioned(
+              left: slot.x + kPlanSide,
+              top: slot.y + kPlanTop,
+              width: slot.w,
+              height: slot.h,
+              child: Padding(
+                padding: const EdgeInsets.all(2.5),
+                child: _StallTile(
+                  id: slot.id,
+                  stall: byId[slot.id],
+                  tappable: byId[slot.id] != null && (canTap?.call(byId[slot.id]!) ?? true),
+                  selected: slot.id == selectedId,
+                  showPrice: showPrice,
+                  // แผงสูงผอม (อาคารยาวหลังหมุนผัง) หมุนตัวอักษรตามแนวแผง จะได้ตัวใหญ่อ่านออก
+                  vertical: slot.isTall,
+                  small: slot.w < 60 || slot.h < 40,
+                  onTap: () {
+                    final s = byId[slot.id];
+                    if (s != null) onTap(s);
+                  },
+                ),
               ),
             ),
-          ),
 
         // ชื่อย่านอยู่บนสุด
         for (final sec in MarketLayout.sections) ..._sectionLabel(sec),
@@ -506,8 +547,8 @@ class _GateMark extends StatelessWidget {
         Icon(Icons.meeting_room_rounded, size: 13, color: AppColors.primaryDark),
         const SizedBox(width: 4),
         Text('ทางเข้า',
-            style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+            style:
+                TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
       ]),
     );
     // ป้ายกว้างตามฟอนต์ จึงย่อให้พอดีกล่องเสมอ
@@ -585,15 +626,17 @@ class _GroundPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GroundPainter old) =>
-      old.ground != ground || old.aisle != aisle;
+  bool shouldRepaint(covariant _GroundPainter old) => old.ground != ground || old.aisle != aisle;
 }
 
 /// คำอธิบายด้านบน: กดได้/กดไม่ได้ + สีสถานะพร้อมจำนวน
 class _Legend extends StatelessWidget {
   final Map<String, int> counts;
   final String lockedHint;
-  const _Legend({required this.counts, required this.lockedHint});
+
+  /// false = ผังนี้ไม่แสดงแผงว่าง จึงไม่ต้องมีหัวข้อ 'ว่าง' ในคำอธิบายสี
+  final bool showEmpty;
+  const _Legend({required this.counts, required this.lockedHint, this.showEmpty = true});
 
   @override
   Widget build(BuildContext context) {
@@ -612,7 +655,7 @@ class _Legend extends StatelessWidget {
         const SizedBox(height: 12),
         Wrap(spacing: 14, runSpacing: 8, children: [
           _StatusDot(label: 'เปิดขาย', kind: 'occupied', count: counts['occupied']!),
-          _StatusDot(label: 'ว่าง', kind: 'empty', count: counts['empty']!),
+          if (showEmpty) _StatusDot(label: 'ว่าง', kind: 'empty', count: counts['empty']!),
           _StatusDot(label: 'ค้างชำระ', kind: 'due', count: counts['due']!),
           _StatusDot(label: 'ปิดปรับปรุง', kind: 'closed', count: counts['closed']!),
         ]),
@@ -658,8 +701,7 @@ class _LegendSample extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
           Text(hint,
-              maxLines: 2,
-              style: TextStyle(fontSize: 11, color: AppColors.muted, height: 1.25)),
+              maxLines: 2, style: TextStyle(fontSize: 11, color: AppColors.muted, height: 1.25)),
         ]),
       ),
     ]);
@@ -704,6 +746,7 @@ class MarketMapFullScreen extends StatefulWidget {
   final bool showPrice;
   final bool Function(Stall)? canTap;
   final void Function(Stall) onTap;
+  final bool hideEmpty;
 
   const MarketMapFullScreen({
     super.key,
@@ -712,6 +755,7 @@ class MarketMapFullScreen extends StatefulWidget {
     this.selectedId,
     this.showPrice = false,
     this.canTap,
+    this.hideEmpty = false,
   });
 
   @override
@@ -739,7 +783,9 @@ class _MarketMapFullScreenState extends State<MarketMapFullScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final byId = {for (final s in widget.stalls) s.id: s};
+    final shown =
+        widget.hideEmpty ? widget.stalls.where((s) => !s.isEmpty).toList() : widget.stalls;
+    final byId = {for (final s in shown) s.id: s};
     final sel = _sel == null ? null : byId[_sel];
 
     return Scaffold(
@@ -776,6 +822,7 @@ class _MarketMapFullScreenState extends State<MarketMapFullScreen> {
                       selectedId: _sel,
                       showPrice: widget.showPrice,
                       canTap: widget.canTap,
+                      hideEmpty: widget.hideEmpty,
                       onTap: (s) {
                         setState(() => _sel = s.id);
                         widget.onTap(s);

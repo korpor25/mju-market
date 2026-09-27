@@ -3,6 +3,7 @@ import '../models/app_notification.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import 'common.dart';
+import 'guest_gate.dart';
 import 'shop_ui.dart';
 
 /// ปุ่มกระดิ่ง + ป้ายจำนวนที่ยังไม่อ่าน → เปิดรายการแจ้งเตือน
@@ -64,6 +65,11 @@ class NotificationCircleButton extends StatelessWidget {
 
 /// เปิดแผ่นรายการแจ้งเตือน แล้วทำเครื่องหมายว่าอ่านทั้งหมด
 Future<void> openNotifications(BuildContext context) async {
+  // ผู้เยี่ยมชมยังไม่มีบัญชี จึงยังไม่มีอะไรจะแจ้งเตือน — ชวนเข้าสู่ระบบแทนกล่องเปล่า
+  if (!appState.isLoggedIn) {
+    await promptSignIn(context, 'การแจ้งเตือน');
+    return;
+  }
   await appState.refreshNotifications();
   if (!context.mounted) return;
   await showModalBottomSheet(

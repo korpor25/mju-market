@@ -34,8 +34,20 @@ async function call(path, payload) {
   return res;
 }
 
-export const replyText = (replyToken, text) =>
-  call('/message/reply', { replyToken, messages: [{ type: 'text', text }] });
+export const replyText = (replyToken, text, quickReply) =>
+  call('/message/reply', {
+    replyToken,
+    messages: [{ type: 'text', text, ...(quickReply ? { quickReply } : {}) }],
+  });
+
+/// ปุ่มลัดใต้ช่องพิมพ์ — ผู้ใช้กดถามต่อได้โดยไม่ต้องจำว่าถามอะไรได้บ้าง
+/// LINE จำกัดป้ายไว้ 20 ตัวอักษร และไม่เกิน 13 ปุ่ม
+export const quickReply = (labels) => ({
+  items: labels.slice(0, 13).map((label) => ({
+    type: 'action',
+    action: { type: 'message', label: label.slice(0, 20), text: label },
+  })),
+});
 
 export const pushText = (to, text) =>
   call('/message/push', { to, messages: [{ type: 'text', text }] });

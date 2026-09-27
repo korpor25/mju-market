@@ -29,7 +29,7 @@ class Shop {
     required this.zone,
     this.status = 'open',
     this.payStatus = 'ok',
-    this.rating = 4.5,
+    this.rating = 0,
     this.reviews = 0,
     this.ownerUid = '',
     this.description = '',
@@ -39,7 +39,13 @@ class Shop {
   });
 
   bool get hasImage => imageUrl.trim().isNotEmpty;
-  String get hoursLabel => hours.trim().isEmpty ? 'เปิด 06.00 - 14.00 น.' : 'เปิด $hours';
+
+  /// ร้านนี้มีคะแนนจากรีวิวจริงแล้วหรือยัง
+  bool get hasRating => reviews > 0 && rating > 0;
+
+  /// เจ้าของร้านกรอกเวลาเปิด-ปิดไว้หรือยัง (ว่าง = ต้องไม่เดาเวลาให้)
+  bool get hasHours => hours.trim().isNotEmpty;
+  String get hoursLabel => hasHours ? 'เปิด $hours' : 'ยังไม่ระบุเวลาเปิด-ปิด';
 
   /// ยังไม่ได้จัดสรรแผง (ผู้ขายเพิ่งได้รับอนุมัติ แต่ยังไม่ได้จองแผง)
   bool get hasStall => stallId.isNotEmpty;
@@ -94,7 +100,8 @@ class Shop {
         zone: (m['zone'] ?? '') as String,
         status: (m['status'] ?? 'open') as String,
         payStatus: (m['payStatus'] ?? 'ok') as String,
-        rating: (m['rating'] ?? 4.5).toDouble(),
+        // ไม่มีฟิลด์ rating = ยังไม่เคยมีใครรีวิว ต้องเป็น 0 ไม่ใช่ค่าเดา
+        rating: (m['rating'] ?? 0).toDouble(),
         reviews: (m['reviews'] ?? 0) as int,
         ownerUid: (m['ownerUid'] ?? '') as String,
         description: (m['description'] ?? '') as String,

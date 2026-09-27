@@ -4,8 +4,10 @@ import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/market_map.dart';
+import '../widgets/stall_info_card.dart';
 
 /// หน้าแผนที่ตลาดแบบเต็มจอ — เปิดจากหน้าร้านเพื่อไฮไลต์แผงของร้านนั้น
+/// เป็นทางฝั่งผู้ซื้อ จึงแสดงเฉพาะแผงที่มีร้านอยู่
 class MarketMapScreen extends StatefulWidget {
   final String? focusStallId;
   const MarketMapScreen({super.key, this.focusStallId});
@@ -46,7 +48,10 @@ class _MarketMapScreenState extends State<MarketMapScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text('ไฮไลต์แผง ${widget.focusStallId} ของร้าน',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                      style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600)),
                 ),
               ]),
             ),
@@ -54,35 +59,13 @@ class _MarketMapScreenState extends State<MarketMapScreen> {
             child: MarketMap(
               stalls: appState.stalls,
               selectedId: _sel?.id,
+              hideEmpty: true,
               onTap: (s) => setState(() => _sel = s),
             ),
           ),
           if (_sel != null) ...[
             const SizedBox(height: 14),
-            AppCard(
-              child: Row(children: [
-                IconChip(Icons.storefront_rounded, color: AppColors.primary, bg: AppColors.leafSoft),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('แผง ${_sel!.id}${_sel!.shopName != null ? " · ${_sel!.shopName}" : ""}',
-                          style: const TextStyle(fontWeight: FontWeight.w800)),
-                      Text(
-                          _sel!.isEmpty
-                              ? 'แผงว่าง · ${_sel!.positionLabel}'
-                              : '${_sel!.categoryLabel} · ${_sel!.positionLabel}',
-                          style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
-                    ],
-                  ),
-                ),
-                StatusPill(
-                  _sel!.isEmpty ? 'ว่าง' : (_sel!.status == 'due' ? 'ค้างชำระ' : (_sel!.status == 'closed' ? 'ปิดปรับปรุง' : 'เปิดขาย')),
-                  tone: _sel!.isEmpty ? 'muted' : (_sel!.status == 'due' ? 'warn' : (_sel!.status == 'closed' ? 'bad' : 'ok')),
-                ),
-              ]),
-            ),
+            StallInfoCard(stall: _sel!),
           ],
         ],
       ),

@@ -31,6 +31,9 @@ class _SellerShellState extends State<SellerShell> {
   int _tab = 0;
   bool _askedForShop = false;
 
+  /// ให้หน้าลูกสั่งสลับแท็บได้ (เช่นเมนู "จัดการสินค้า" ที่พาไปรายการสินค้าในหน้าหลัก)
+  void goToTab(int i) => setState(() => _tab = i);
+
   /// เพิ่งเข้ามาเป็นผู้ขายแต่ยังไม่มีร้านและไม่ได้ยื่นอะไรไว้
   /// เปิดหน้าขอเปิดร้านให้เลย จะได้ไม่ต้องมองหาปุ่มเอง (ถามครั้งเดียวพอ)
   void _maybeAskForShop() {
@@ -464,7 +467,7 @@ class _ManageShop extends StatelessWidget {
           (Icons.inventory_2_outlined, 'จัดการสินค้า'),
           (Icons.photo_library_outlined, 'รูปภาพร้าน'),
           (Icons.schedule_rounded, 'เวลาเปิด-ปิดร้าน'),
-          (Icons.payments_outlined, 'ตั้งค่าการชำระเงิน'),
+          (Icons.payments_outlined, 'ค่าเช่าแผงและแจ้งชำระ'),
           (Icons.storefront_outlined, 'สถานะร้าน'),
         ];
         return ListView(
@@ -527,8 +530,12 @@ class _ManageShop extends StatelessWidget {
                       const editable = {'ข้อมูลร้านค้า', 'รูปภาพร้าน', 'เวลาเปิด-ปิดร้าน', 'สถานะร้าน'};
                       if (editable.contains(item.$2)) {
                         _openEdit(context, shop);
+                      } else if (item.$2 == 'จัดการสินค้า') {
+                        // รายการสินค้าอยู่ในแท็บหน้าหลักอยู่แล้ว — พาไปที่เดิม ไม่ทำหน้าซ้ำ
+                        context.findAncestorStateOfType<_SellerShellState>()?.goToTab(0);
                       } else {
-                        showSnack(context, '${item.$2} — อยู่ระหว่างพัฒนา');
+                        Navigator.push(
+                            context, MaterialPageRoute(builder: (_) => const PaymentScreen()));
                       }
                     },
                   ),

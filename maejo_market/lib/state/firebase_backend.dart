@@ -427,6 +427,53 @@ class FirebaseBackend {
     }, SetOptions(merge: true));
   }
 
+  // ---------------- INSPECTIONS (ตรวจมาตรฐานร้าน) ----------------
+
+  /// บันทึกผลการตรวจหนึ่งครั้ง แล้วแจ้งเจ้าของร้านให้รู้ผล
+  Future<void> saveInspection({
+    required String shopId,
+    required String shopName,
+    required Map<String, int> scores,
+    required double avg,
+    required String note,
+    required String byUid,
+    required String byName,
+  }) async {
+    await _db.collection('inspections').add({
+      'shopId': shopId,
+      'shopName': shopName,
+      'scores': scores,
+      'avg': avg,
+      'note': note,
+      'byUid': byUid,
+      'byName': byName,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    final ownerUid = (await _db.collection('shops').doc(shopId).get()).data()?['ownerUid'];
+    if (ownerUid is String && ownerUid.isNotEmpty) {
+      await _notify(ownerUid, 'ผลตรวจมาตรฐานร้าน',
+          'ร้าน "$shopName" ได้คะแนนเฉลี่ย ${avg.toStringAsFixed(1)}/5'
+          '${note.trim().isEmpty ? '' : ' · $note'}');
+    }
+  }
+
+  /// ผลการตรวจล่าสุด (ทั้งหมด หรือเฉพาะร้านเดียว) เรียงใหม่→เก่า
+  Future<List<Map<String, dynamic>>> fetchInspections({String? shopId}) async {
+    // ไม่ใช้ orderBy คู่กับ where เพื่อเลี่ยง composite index — เรียงฝั่ง client
+    final q = shopId == null
+        ? await _db.collection('inspections').get()
+        : await _db.collection('inspections').where('shopId', isEqualTo: shopId).get();
+    final list = q.docs.map((d) {
+      final m = Map<String, dynamic>.from(d.data());
+      m['id'] = d.id;
+      final ts = m['createdAt'];
+      m['createdAt'] = ts is Timestamp ? ts.millisecondsSinceEpoch : 0;
+      return m;
+    }).toList();
+    list.sort((a, b) => (b['createdAt'] as int).compareTo(a['createdAt'] as int));
+    return list;
+  }
+
   // ---------------- NOTIFICATIONS ----------------
 
   Future<List<AppNotification>> fetchNotifications(String uid) async {

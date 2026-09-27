@@ -127,8 +127,10 @@ async function upsertAccount(a) {
     console.log(`  + auth สร้างใหม่: ${a.email}`);
   } catch (e) {
     if (e.code === 'auth/uid-already-exists' || e.code === 'auth/email-already-exists') {
-      await auth.updateUser(a.uid, { email: a.email, password: a.password, displayName: a.name });
-      console.log(`  ~ auth อัปเดต: ${a.email}`);
+      // ไม่เขียนทับรหัสผ่านของบัญชีที่มีอยู่แล้ว — บัญชีแอดมินบน production
+      // ถูกตั้งรหัสจริงไว้ รันสคริปต์นี้ซ้ำแล้วต้องไม่ดีดกลับเป็นรหัสทดลอง
+      await auth.updateUser(a.uid, { email: a.email, displayName: a.name });
+      console.log(`  ~ auth อัปเดต (ไม่แตะรหัสผ่านเดิม): ${a.email}`);
     } else {
       throw e;
     }

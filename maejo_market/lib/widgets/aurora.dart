@@ -13,20 +13,21 @@ import '../theme/app_colors.dart';
 ///
 /// ทำไมไม่ใช้ MaskFilter.blur กับก้อนสี: falloff ของ RadialGradient นุ่มพออยู่แล้ว
 /// และการเบลอรัศมีใหญ่ ๆ หลายชั้นช้ามากบน Flutter Web CanvasKit จึงเก็บ blur ไว้ใช้
-/// เฉพาะ "ริ้วแสงขาว" 3 เส้นที่วาดทับด้านบน (คือสิ่งที่ทำให้ดูเป็นรอยพับของผ้าไหม)
+/// เฉพาะ "ริ้วผ้า" ที่วาดทับด้านบน (คือสิ่งที่ทำให้ดูเป็นรอยพับของผ้าไหม)
 ///
 /// รวมแล้ววาดประมาณ 14 ชิ้นต่อเฟรม และใช้ AnimationController ตัวเดียว
 /// ========================================================================
 
-// ---- จานสีพาสเทล (ค่าคงที่ในไฟล์ ไม่พึ่ง AppColors เพราะพื้นหลังนี้ต้องสว่างเสมอ) ----
-const Color _kMintPale = Color(0xFFDFF6E8); // เขียวอ่อนมาก เกือบขาว
-const Color _kMintSoft = Color(0xFFCBF0DC);
-const Color _kMint = Color(0xFF9FE2BB); // เขียวมิ้นต์ — สีหลักของแบรนด์เวอร์ชันพาสเทล
-const Color _kLeaf = Color(0xFFBDEBCF);
-const Color _kGrass = Color(0xFF7CD3A2); // เขียวกลาง
-const Color _kGrassSoft = Color(0xFFD3F1DE);
-const Color _kForest = Color(0xFF57C08A); // เขียวเข้มสุดในชุด ให้ภาพมีช่วงอ่อน→เข้ม
-const Color _kWhite = Color(0xFFFFFFFF); // ขาว = ตัวเชื่อมให้สีละลายเข้าหากัน
+// ---- จานสี (โทนขาวเป็นหลัก แตะเขียวบาง ๆ พอไม่ให้จืด) ----
+const Color _kMintPale = Color(0xFFF8FDFA); // ขาวอมเขียวจาง
+const Color _kMintSoft = Color(0xFFF1FAF5);
+const Color _kMint = Color(0xFFE4F6EC); // มิ้นต์ของแบรนด์ เวอร์ชันจางมาก
+const Color _kLeaf = Color(0xFFEDF9F2);
+const Color _kGrass = Color(0xFFDAF2E5); // เขียวอ่อน
+const Color _kGrassSoft = Color(0xFFF5FCF8);
+const Color _kForest = Color(0xFFCBEBDA); // เข้มสุดในชุด — ยังเป็นพาสเทลจาง
+const Color _kWhite = Color(0xFFFFFFFF); // ขาว = สีหลักของพื้นหลัง
+const Color _kSilk = Color(0xFFD6EFE2); // ริ้ว "รอยพับ" — เขียวจาง เพราะริ้วขาวจะจมหายไปในพื้นขาว
 
 /// ก้อนสีหนึ่งก้อนของ mesh — ศูนย์กลางเคลื่อนบนเส้น Lissajous
 ///
@@ -67,35 +68,35 @@ const List<_Blob> _kBlobs = [
   // บนซ้าย: เขียวอ่อน (ก้อนใหญ่สุด เป็นโทนหลักของภาพ)
   _Blob(
       color: _kMintPale, cx: 0.20, cy: 0.22, ax: 0.14, ay: 0.11,
-      fx: 1, fy: -1, px: 0.0, py: 1.2, radius: 0.82, alpha: 0.70, pulse: 0.06),
+      fx: 1, fy: -1, px: 0.0, py: 1.2, radius: 0.82, alpha: 0.55, pulse: 0.06),
   // บนขวา: เขียวอ่อนกว่า
   _Blob(
       color: _kMintSoft, cx: 0.80, cy: 0.16, ax: 0.12, ay: 0.13,
-      fx: -1, fy: 2, px: 2.1, py: 0.4, radius: 0.70, alpha: 0.63, pulse: 0.05),
+      fx: -1, fy: 2, px: 2.1, py: 0.4, radius: 0.70, alpha: 0.48, pulse: 0.05),
   // ล่างกลาง: เขียวมิ้นต์ของแบรนด์
   _Blob(
       color: _kMint, cx: 0.46, cy: 0.82, ax: 0.16, ay: 0.10,
-      fx: 2, fy: 1, px: 3.4, py: 2.6, radius: 0.74, alpha: 0.58, pulse: 0.07),
+      fx: 2, fy: 1, px: 3.4, py: 2.6, radius: 0.74, alpha: 0.46, pulse: 0.07),
   // ซ้ายล่าง: เขียวใบไม้อ่อน
   _Blob(
       color: _kLeaf, cx: 0.10, cy: 0.64, ax: 0.13, ay: 0.14,
-      fx: 1, fy: 2, px: 1.5, py: 4.0, radius: 0.80, alpha: 0.65, pulse: 0.05),
+      fx: 1, fy: 2, px: 1.5, py: 4.0, radius: 0.80, alpha: 0.50, pulse: 0.05),
   // กลางขวา: เขียวกลาง
   _Blob(
       color: _kGrass, cx: 0.74, cy: 0.54, ax: 0.15, ay: 0.12,
-      fx: -2, fy: 1, px: 0.9, py: 5.1, radius: 0.66, alpha: 0.62, pulse: 0.06),
+      fx: -2, fy: 1, px: 0.9, py: 5.1, radius: 0.66, alpha: 0.50, pulse: 0.06),
   // กลางจอ: เขียวอ่อน — ตัวเชื่อมระหว่างโซนอ่อนกับโซนเข้ม
   _Blob(
       color: _kGrassSoft, cx: 0.40, cy: 0.44, ax: 0.18, ay: 0.15,
-      fx: 1, fy: -2, px: 4.6, py: 2.0, radius: 0.58, alpha: 0.52, pulse: 0.08),
+      fx: 1, fy: -2, px: 4.6, py: 2.0, radius: 0.58, alpha: 0.42, pulse: 0.08),
   // ขวาล่าง: เขียวเข้มสุดของชุด
   _Blob(
       color: _kForest, cx: 0.88, cy: 0.86, ax: 0.12, ay: 0.12,
-      fx: -1, fy: -1, px: 2.8, py: 0.8, radius: 0.76, alpha: 0.62, pulse: 0.06),
-  // ขาวลอยค่อนไปทางบน — ทำให้ภาพสว่างและช่วยละลายรอยต่อของสีทั้งหมด
+      fx: -1, fy: -1, px: 2.8, py: 0.8, radius: 0.76, alpha: 0.52, pulse: 0.06),
+  // ขาวก้อนใหญ่กลางจอ — กดให้ทั้งภาพเป็นโทนขาวและละลายรอยต่อของสีทั้งหมด
   _Blob(
       color: _kWhite, cx: 0.56, cy: 0.30, ax: 0.20, ay: 0.16,
-      fx: 1, fy: 1, px: 5.6, py: 3.3, radius: 0.68, alpha: 0.26, pulse: 0.09),
+      fx: 1, fy: 1, px: 5.6, py: 3.3, radius: 0.86, alpha: 0.62, pulse: 0.09),
 ];
 
 /// พื้นหลังโฮโลแกรมแบบผ้าไหม วาง [child] ทับอยู่ด้านบน
@@ -181,10 +182,10 @@ class _AuroraPainter extends CustomPainter {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFF2FBF5), // เขียวจางเกือบขาว
-            Color(0xFFE6F7EC), // เขียวอ่อน
-            Color(0xFFDAF2E4), // เขียวมิ้นต์จาง
-            Color(0xFFC2E9D3), // เขียวเข้มขึ้นที่มุมล่าง
+            Color(0xFFFFFFFF), // ขาวล้วนที่มุมบนซ้าย
+            Color(0xFFFCFEFD), // ขาวอมเขียวแทบไม่รู้สึก
+            Color(0xFFF5FBF8), // เขียวจางมาก
+            Color(0xFFEAF7F0), // เขียวจางสุดที่มุมล่าง
           ],
           stops: [0.0, 0.36, 0.68, 1.0],
         ).createShader(rect),
@@ -221,33 +222,33 @@ class _AuroraPainter extends CustomPainter {
       );
     }
 
-    // ---- ชั้นบนสุด: ริ้วแสงขาวพาดโค้ง = รอยพับของผ้าไหม ----
-    // แกนกลางสว่างเกือบขาว ขอบฟุ้งนุ่มด้วย MaskFilter.blur (ใช้แค่ 3 เส้นเพื่อความเร็ว)
+    // ---- ชั้นบนสุด: ริ้วเขียวจางพาดโค้ง = รอยพับของผ้าไหม ----
+    // พื้นเป็นขาวแล้ว ริ้วจึงต้องเข้มกว่าพื้นเล็กน้อยถึงจะมองเห็น ขอบฟุ้งด้วย MaskFilter.blur
     _silk(canvas, size,
         yBase: 0.30, slope: -0.16, amp1: 0.075, amp2: 0.040,
-        width: short * 0.17, blur: 26, alpha: 0.54 * k,
+        width: short * 0.17, blur: 26, alpha: 0.42 * k,
         speed: 1, phase: 0.4, core: true);
     _silk(canvas, size,
         yBase: 0.62, slope: 0.20, amp1: 0.090, amp2: 0.035,
-        width: short * 0.22, blur: 32, alpha: 0.46 * k,
+        width: short * 0.22, blur: 32, alpha: 0.36 * k,
         speed: -1, phase: 2.7, core: true);
     _silk(canvas, size,
         yBase: 0.86, slope: -0.10, amp1: 0.060, amp2: 0.030,
-        width: short * 0.14, blur: 22, alpha: 0.36 * k,
+        width: short * 0.14, blur: 22, alpha: 0.28 * k,
         speed: 2, phase: 4.9, core: true);
     _silk(canvas, size,
         yBase: 0.14, slope: 0.12, amp1: 0.055, amp2: 0.028,
-        width: short * 0.12, blur: 20, alpha: 0.30 * k,
+        width: short * 0.12, blur: 20, alpha: 0.24 * k,
         speed: -2, phase: 1.8, core: false);
     // ริ้วทแยงอีกสองเส้น ให้รอยพับไม่ได้นอนขนานกันหมด
     // (ชันมากไม่ได้ ถ้าเส้นทแยงมาบรรจบกันจะกลายเป็นรูปลูกศร ดูเป็นกราฟิกไม่ใช่ผ้า)
     _silk(canvas, size,
         yBase: 0.40, slope: -0.26, amp1: 0.085, amp2: 0.040,
-        width: short * 0.15, blur: 26, alpha: 0.32 * k,
+        width: short * 0.15, blur: 26, alpha: 0.26 * k,
         speed: 1, phase: 3.9, core: false);
     _silk(canvas, size,
         yBase: 0.74, slope: 0.22, amp1: 0.075, amp2: 0.045,
-        width: short * 0.13, blur: 24, alpha: 0.28 * k,
+        width: short * 0.13, blur: 24, alpha: 0.22 * k,
         speed: -1, phase: 5.5, core: false);
   }
 
@@ -291,10 +292,10 @@ class _AuroraPainter extends CustomPainter {
     // ไล่ความทึบตามแนวนอน ให้หัว-ท้ายริ้วจางหายไป จะได้ไม่เห็นปลายเส้น
     Shader shade(double a) => LinearGradient(
           colors: [
-            _kWhite.withValues(alpha: 0),
-            _kWhite.withValues(alpha: a),
-            _kWhite.withValues(alpha: a * 0.85),
-            _kWhite.withValues(alpha: 0),
+            _kSilk.withValues(alpha: 0),
+            _kSilk.withValues(alpha: a),
+            _kSilk.withValues(alpha: a * 0.85),
+            _kSilk.withValues(alpha: 0),
           ],
           stops: const [0.0, 0.26, 0.70, 1.0],
         ).createShader(Offset.zero & size);

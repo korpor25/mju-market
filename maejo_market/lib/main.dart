@@ -58,7 +58,8 @@ class _Root extends StatelessWidget {
       builder: (context, _) {
         if (!appState.ready) return SplashView();
         final user = appState.user;
-        if (user == null) return LoginScreen();
+        // ผู้บริโภคที่ไม่อยากลงทะเบียนเข้าดูตลาดได้เลยในมุมมองผู้ซื้อ
+        if (user == null) return appState.guest ? BuyerShell() : LoginScreen();
         if (user.status == 'suspended') return _SuspendedView();
         switch (user.role) {
           case UserRole.admin:

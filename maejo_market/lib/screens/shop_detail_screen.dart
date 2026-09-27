@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../models/shop.dart';
 import '../models/product.dart';
 import '../models/review.dart';
+import '../services/visit_history.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/guest_gate.dart';
 import '../widgets/shop_cards.dart';
 import '../widgets/shop_ui.dart';
 import 'market_map_screen.dart';
@@ -29,6 +31,8 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
     super.initState();
     _future = appState.fetchProductsFor(widget.shop.id);
     _loadReviews();
+    // เก็บไว้ในเครื่องเท่านั้น ผู้เยี่ยมชมที่ยังไม่ลงทะเบียนก็มีประวัติของตัวเอง
+    VisitHistory.record(widget.shop);
   }
 
   Future<void> _loadReviews() async {
@@ -82,7 +86,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
 
   Future<void> _toggleFav() async {
     if (!appState.isLoggedIn) {
-      showSnack(context, 'เข้าสู่ระบบเพื่อติดตามร้าน');
+      await promptSignIn(context, 'การติดตามร้าน');
       return;
     }
     final nowFav = await appState.toggleFavorite(widget.shop.id);
@@ -140,7 +144,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                   title: shop.name,
                   subtitle: count > 0
                       ? '${headerRating.toStringAsFixed(1)} ★ ($count รีวิว)'
-                      : '${shop.rating.toStringAsFixed(1)} ★ · ${shop.category}',
+                      : 'ยังไม่มีรีวิว · ${shop.category}',
                   height: 290,
                   leadingActions: [
                     CircleIconButton(Icons.arrow_back_rounded,
@@ -330,10 +334,15 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                   filled: true,
                   onTap: _openWriteSheet,
                 )
-              : Text(
-                  appState.isLoggedIn ? 'นี่คือร้านของคุณ' : 'เข้าสู่ระบบเพื่อรีวิว',
-                  style: TextStyle(color: AppColors.muted, fontSize: 12.5),
-                ),
+              : appState.isLoggedIn
+                  // ผู้เยี่ยมชมกดได้เลย แล้วค่อยชวนเข้าสู่ระบบ ดีกว่าบอกเฉย ๆ ว่าต้องล็อกอิน
+                  ? Text('นี่คือร้านของคุณ',
+                      style: TextStyle(color: AppColors.muted, fontSize: 12.5))
+                  : PillButton(
+                      'เข้าสู่ระบบเพื่อรีวิว',
+                      icon: Icons.login_rounded,
+                      onTap: () => promptSignIn(context, 'การเขียนรีวิว'),
+                    ),
         ),
       ]),
     );

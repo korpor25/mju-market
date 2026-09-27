@@ -24,6 +24,15 @@ service cloud.firestore {
       return hasRole('admin');
     }
 
+    // เป็นเจ้าของร้านนี้หรือไม่ — ร้านที่อนุมัติผ่านคำขอมี id สุ่ม (ไม่ใช่ uid)
+    // จึงต้องดู ownerUid ในเอกสารร้าน ; ยังรับ shopId == uid ไว้ให้ข้อมูลเก่า
+    function ownsShop(shopId) {
+      return signedIn() && (
+        shopId == request.auth.uid ||
+        get(/databases/$(database)/documents/shops/$(shopId)).data.ownerUid == request.auth.uid
+      );
+    }
+
     // ผู้ใช้: อ่าน/เขียนเอกสารของตัวเอง ; admin เข้าถึงได้ทุกคน
     match /users/{uid} {
       allow read:   if signedIn() && (request.auth.uid == uid || isAdmin());
@@ -59,24 +68,23 @@ service cloud.firestore {
       allow delete: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
     }
 
-    // สินค้า: ใครก็อ่านได้ ; จัดการได้เฉพาะเจ้าของร้าน (shopId == uid) หรือ admin
+    // สินค้า: ใครก็อ่านได้ ; จัดการได้เฉพาะเจ้าของร้านหรือ admin
     match /products/{id} {
       allow read:   if true;
-      allow create: if signedIn() && (isAdmin() || request.resource.data.shopId == request.auth.uid);
-      allow update, delete: if signedIn() && (isAdmin() || resource.data.shopId == request.auth.uid);
+      allow create: if isAdmin() || ownsShop(request.resource.data.shopId);
+      allow update, delete: if isAdmin() || ownsShop(resource.data.shopId);
     }
 
-    // ยอดขาย: เจ้าของร้าน (shopId == uid) บันทึก/อ่าน/ลบของตัวเองได้ ; แอดมินเห็นทุกร้าน
-    // หมายเหตุ: การ query ฝั่งผู้ขายต้องกรอง where('shopId', isEqualTo: uid) เสมอ
+    // ยอดขาย: เจ้าของร้านบันทึก/อ่าน/ลบของร้านตัวเองได้ ; แอดมินเห็นทุกร้าน
+    // หมายเหตุ: การ query ฝั่งผู้ขายต้องกรอง where('shopId', isEqualTo: shopId) เสมอ
     match /sales/{id} {
-      allow read: if signedIn() && (isAdmin() || resource.data.shopId == request.auth.uid);
-      allow create: if signedIn()
-                    && (isAdmin() || request.resource.data.shopId == request.auth.uid)
+      allow read: if isAdmin() || ownsShop(resource.data.shopId);
+      allow create: if (isAdmin() || ownsShop(request.resource.data.shopId))
                     && request.resource.data.price is number
                     && request.resource.data.price >= 0
                     && request.resource.data.qty is int
                     && request.resource.data.qty > 0;
-      allow update, delete: if signedIn() && (isAdmin() || resource.data.shopId == request.auth.uid);
+      allow update, delete: if isAdmin() || ownsShop(resource.data.shopId);
     }
 
     // แผง: อ่านได้ทุกคน, แก้ไขเฉพาะแอดมิน
@@ -113,6 +121,15 @@ service cloud.firestore {
       allow read:           if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
       allow create:         if isAdmin();
       allow update, delete: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
+    }
+
+    // ผลตรวจมาตรฐานร้าน: แอดมินเป็นผู้ตรวจและแก้ไขได้ ; เจ้าของร้านอ่านผลของร้านตัวเองได้
+    match /inspections/{id} {
+      allow read:   if isAdmin() ||
+        (signedIn() &&
+          get(/databases/$(database)/documents/shops/$(resource.data.shopId)).data.ownerUid
+            == request.auth.uid);
+      allow write:  if isAdmin();
     }
   }
 }
