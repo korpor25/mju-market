@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:maejo_market/data/demo_data.dart';
+import 'support/sample_data.dart';
 import 'package:maejo_market/models/app_user.dart';
 import 'package:maejo_market/screens/buyer/buyer_shell.dart';
 import 'package:maejo_market/screens/favorites_screen.dart';
@@ -19,9 +19,9 @@ import 'package:maejo_market/widgets/stall_info_card.dart';
 void main() {
   setUp(() {
     // ใส่ข้อมูลตรง ๆ แทน appState.init() เพราะโหมดจริงต่อ Firebase
-    appState.shops = DemoData.shops();
-    appState.stalls = DemoData.stalls();
-    appState.banners = DemoData.banners();
+    appState.shops = SampleData.shops();
+    appState.stalls = SampleData.stalls();
+    appState.banners = SampleData.banners();
     appState.ready = true;
     appState.user = const AppUser(
       uid: 'u-test',

@@ -19,43 +19,30 @@
 
 ---
 
-## 🧪 Demo Mode (รันได้ทันที — ไม่ต้องตั้ง Firebase)
-
-ค่าเริ่มต้น `AppConfig.useFirebase = false` แอปจะใช้ **ข้อมูลจำลองในเครื่อง** — ล็อกอิน + อนุมัติคำขอ + จองแผง ทำงานได้จริงเลย
-
-**บัญชีทดลอง (รหัสผ่าน `123456` ทุกบัญชี):**
-- ผู้ดูแลระบบ → `admin@maejo.com`
-- ผู้ขาย → `seller@maejo.com`
-- ผู้บริโภค → `buyer@maejo.com`
-
-> ในหน้า Login มีปุ่มแตะกรอกอัตโนมัติให้ด้วย
-
----
-
-## 🚀 เริ่มต้นใช้งาน (Step-by-step)
+## 🚀 เริ่มต้นใช้งาน
 
 ### 1) ติดตั้ง Flutter (ครั้งเดียว)
 - ดาวน์โหลด: https://docs.flutter.dev/get-started/install/windows
 - แตกไฟล์ไว้เช่น `C:\src\flutter` แล้วเพิ่ม `C:\src\flutter\bin` ลงใน PATH
 - ตรวจสอบ: `flutter doctor`
 
-### 2) สร้างโครง platform + ติดตั้งแพ็กเกจ
+### 2) โหลดโค้ด + ติดตั้งแพ็กเกจ
 ```bash
-cd maejo_market
-flutter create .            # สร้างโฟลเดอร์ web/android/ios + ไอคอน (ไม่ทับ lib/)
+git clone https://github.com/korpor25/mju-market.git
+cd mju-market
 flutter pub get
 ```
 
-### 3) รันแบบ Demo (เห็นแอปทำงานทันที)
+### 3) รัน
 ```bash
 flutter run -d chrome
 ```
 
-เท่านี้ก็ลองใช้ได้เลย! 🎉
+แอปต่อ Firebase โปรเจกต์ที่ตั้งไว้ใน [lib/firebase_options.dart](lib/firebase_options.dart) อยู่แล้ว
 
 ---
 
-## 🔥 ต่อ Firebase จริง (เมื่อพร้อม)
+## 🔥 ตั้ง Firebase โปรเจกต์ใหม่ (ถ้าจะย้ายไปใช้โปรเจกต์ของตัวเอง)
 
 ### 1) สร้างโปรเจกต์ Firebase (ฟรี)
 - ไปที่ https://console.firebase.google.com → **Add project**
@@ -68,16 +55,13 @@ dart pub global activate flutterfire_cli
 flutterfire configure          # เลือกโปรเจกต์ + แพลตฟอร์ม → สร้าง lib/firebase_options.dart ให้อัตโนมัติ
 ```
 
-### 3) เปิดใช้ Firebase ในแอป
-แก้ไฟล์ [lib/app_config.dart](lib/app_config.dart):
-```dart
-static const bool useFirebase = true;   // เปลี่ยนจาก false
+### 3) วาง Security Rules
+```bash
+firebase deploy --only firestore:rules
 ```
+หรือคัดลอก [firestore.rules](firestore.rules) ไปวางใน Firebase Console → Firestore → Rules → Publish
 
-### 4) วาง Security Rules
-คัดลอกเนื้อหาจาก [firestore.rules](firestore.rules) ไปวางใน Firebase Console → Firestore → Rules → Publish
-
-> หมายเหตุ: สร้างบัญชีแอดมินคนแรกโดยสมัครผ่านแอปแล้วเข้าไปแก้ field `role` เป็น `admin` ใน Firestore ที่ collection `users`
+> สร้างบัญชีแอดมินคนแรกโดยสมัครผ่านแอป แล้วแก้ field `role` เป็น `admin` ใน Firestore ที่ collection `users`
 
 ---
 
@@ -108,16 +92,20 @@ flutter build apk --release
 ```
 lib/
 ├─ main.dart                 # จุดเริ่ม + router ตามบทบาท
-├─ app_config.dart           # สวิตช์ Demo/Firebase
+├─ app_config.dart           # ค่าตั้งค่า (Cloudinary, LINE OA, ค่าเช่า, เงื่อนไขร้าน)
 ├─ firebase_options.dart     # (flutterfire สร้างทับ)
 ├─ theme/                    # สี + ธีม Kanit
-├─ models/                   # AppUser, Shop, MarketRequest, Stall
-├─ data/demo_data.dart       # ข้อมูลจำลอง
+├─ models/                   # AppUser, Shop, Stall, Product, Sale, Review ฯลฯ
+├─ data/                     # ผังตลาด + หมวดสินค้า
 ├─ state/                    # AppState (auth+data) + FirebaseBackend
-├─ widgets/                  # common.dart, market_map.dart
+├─ services/                 # Cloudinary, LINE push, ประวัติการเข้าชม
+├─ widgets/                  # คอมโพเนนต์ที่ใช้ร่วมกัน
 └─ screens/
-   ├─ auth/                  # login, signup (เลือกผู้บริโภค/ผู้ขาย)
-   ├─ buyer/                 # หน้าแรก, ค้นหา, แผนที่, โปรไฟล์
-   ├─ seller/                # dashboard, จัดการร้าน, จองพื้นที่
-   └─ admin/                 # dashboard, อนุมัติ, แผนผัง, มาตรฐาน
+   ├─ auth/                  # login, signup
+   ├─ buyer/                 # หน้าแรก, ค้นหา, แผนที่
+   ├─ seller/                # dashboard, จัดการร้าน, ยอดขาย, ชำระค่าเช่า
+   └─ admin/                 # อนุมัติ, แผง, แบนเนอร์, ผู้ใช้, รายงาน
+server/                      # ตัวกลาง LINE OA (Vercel)
+tools/firestore/             # สคริปต์ดูแลฐานข้อมูล (wipe, migrate-roles)
+test/                        # widget/unit tests
 ```

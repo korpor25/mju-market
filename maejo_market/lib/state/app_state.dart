@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
 import '../app_config.dart';
-import '../data/demo_data.dart';
 import '../models/app_user.dart';
 import '../models/shop.dart';
 import '../models/market_request.dart';
@@ -13,14 +12,14 @@ import '../models/review.dart';
 import '../models/sale.dart';
 import 'firebase_backend.dart';
 
-/// สถานะกลางของแอป (auth + ข้อมูล) รองรับทั้ง Demo Mode และ Firebase
+/// สถานะกลางของแอป (auth + ข้อมูล) — ข้อมูลทั้งหมดมาจาก Firebase
 ///
 /// ใช้แบบ singleton: `appState`
 class AppState extends ChangeNotifier {
   AppState._();
   static final AppState instance = AppState._();
 
-  final FirebaseBackend? _fb = AppConfig.useFirebase ? FirebaseBackend() : null;
+  final FirebaseBackend _fb = FirebaseBackend();
 
   bool ready = false;
   AppUser? user;
@@ -61,9 +60,6 @@ class AppState extends ChangeNotifier {
 
   // สถิติสำหรับแอดมิน
   int sellerCount = 0;
-
-  // บัญชี demo ในหน่วยความจำ (email -> {password, user})
-  final Map<String, Map<String, dynamic>> _demoAccounts = {};
 
   bool get isLoggedIn => user != null;
   int get pendingCount => requests.where((r) => r.status == 'pending').length;
@@ -110,70 +106,35 @@ class AppState extends ChangeNotifier {
     if (amount <= 0) return 'ยังไม่มียอดที่ต้องชำระ';
     if (hasPendingPayment(shop.id)) return 'มีรายการแจ้งชำระรออยู่แล้ว';
 
-    if (_fb != null) {
-      await _fb.addPayment(
-        uid: u.uid,
-        shopId: shop.id,
-        shopName: shop.name,
-        stallId: shop.stallId,
-        amount: amount,
-        by: u.name,
-        slipUrl: slipUrl,
-        note: note,
-      );
-      requests = await _fb.fetchRequests();
-    } else {
-      requests = [
-        MarketRequest(
-          id: 'r-${DateTime.now().millisecondsSinceEpoch}',
-          type: RequestType.payment,
-          title: shop.stallId.isEmpty ? shop.name : '${shop.name} · ${shop.stallId}',
-          subtitle: note.isEmpty ? 'แจ้งชำระค่าเช่าแผง' : note,
-          amount: '฿$amount',
-          requesterName: u.name,
-          uid: u.uid,
-          shopId: shop.id,
-          slipUrl: slipUrl,
-        ),
-        ...requests,
-      ];
-    }
+    await _fb.addPayment(
+      uid: u.uid,
+      shopId: shop.id,
+      shopName: shop.name,
+      stallId: shop.stallId,
+      amount: amount,
+      by: u.name,
+      slipUrl: slipUrl,
+      note: note,
+    );
+    requests = await _fb.fetchRequests();
     notifyListeners();
     return null;
   }
 
   Future<void> init() async {
-    if (_fb != null) {
-      await _fb.init();
-      _fb.watchAuth((u) async {
-        user = u;
-        // ล็อกอินแล้วก็ไม่ใช่ผู้เยี่ยมชมอีก ไม่งั้นออกจากระบบแล้วจะค้างอยู่ในตลาดแทนหน้าล็อกอิน
-        if (u != null) guest = false;
-        if (u != null) {
-          await _loadData();
-        } else if (guest) {
-          await _loadPublicData();
-        }
-        ready = true;
-        notifyListeners();
-      });
-    } else {
-      // ---- Demo Mode ----
-      for (final a in DemoData.demoAccounts()) {
-        final u = a['user'] as AppUser;
-        _demoAccounts[u.email.toLowerCase()] = a;
+    await _fb.init();
+    _fb.watchAuth((u) async {
+      user = u;
+      // ล็อกอินแล้วก็ไม่ใช่ผู้เยี่ยมชมอีก ไม่งั้นออกจากระบบแล้วจะค้างอยู่ในตลาดแทนหน้าล็อกอิน
+      if (u != null) guest = false;
+      if (u != null) {
+        await _loadData();
+      } else if (guest) {
+        await _loadPublicData();
       }
-      _seedDemoData();
       ready = true;
       notifyListeners();
-    }
-  }
-
-  void _seedDemoData() {
-    shops = DemoData.shops();
-    requests = DemoData.requests();
-    stalls = DemoData.stalls();
-    banners = DemoData.banners();
+    });
   }
 
   /// แบนเนอร์ที่เปิดใช้งาน เรียงตามลำดับที่แอดมินตั้งไว้
@@ -185,9 +146,8 @@ class AppState extends ChangeNotifier {
 
   /// ข้อมูลที่กฎ Firestore เปิดให้ทุกคนอ่าน — ผู้เยี่ยมชมที่ยังไม่ล็อกอินก็เห็นชุดนี้
   Future<void> _loadPublicData() async {
-    if (_fb == null) return;
     shops = await _fb.fetchShops();
-    // ไม่มี fallback ไปข้อมูลจำลอง — ถ้า Firestore ยังไม่มีแผง ผังต้องว่างจริง ๆ
+    // ถ้า Firestore ยังไม่มีแผง ผังต้องว่างจริง ๆ
     // (แอดมินมีปุ่ม "สร้างแผงตามผังตลาด" ในหน้าจัดการแผงไว้เติมให้ครบ)
     stalls = await _fb.fetchStalls();
     // แบนเนอร์เป็นของเสริม — ถ้า rules ยังไม่ได้ deploy หรือปฏิเสธ
@@ -200,7 +160,6 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _loadData() async {
-    if (_fb == null) return;
     await _loadPublicData();
     requests = await _fb.fetchRequests();
 
@@ -247,19 +206,18 @@ class AppState extends ChangeNotifier {
   /// โหลดไม่ได้ (เน็ตหลุด/สิทธิ์ไม่พอ) ให้คงรายการเดิมไว้ ดีกว่าทำให้ปุ่มกระดิ่งพังทั้งปุ่ม
   Future<void> refreshNotifications() async {
     final u = user;
-    if (_fb != null && u != null) {
-      try {
-        notifications = await _fb.fetchNotifications(u.uid);
-      } catch (e) {
-        debugPrint('fetchNotifications failed: $e');
-        return;
-      }
-      notifyListeners();
+    if (u == null) return;
+    try {
+      notifications = await _fb.fetchNotifications(u.uid);
+    } catch (e) {
+      debugPrint('fetchNotifications failed: $e');
+      return;
     }
+    notifyListeners();
   }
 
   Future<void> markNotificationRead(String id) async {
-    if (_fb != null) await _fb.markNotificationRead(id);
+    await _fb.markNotificationRead(id);
     notifications = notifications
         .map((n) => n.id == id
             ? AppNotification(id: n.id, uid: n.uid, title: n.title, body: n.body, read: true, createdAt: n.createdAt)
@@ -270,7 +228,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> markAllNotificationsRead() async {
     final u = user;
-    if (_fb != null && u != null) {
+    if (u != null) {
       try {
         await _fb.markAllNotificationsRead(u.uid);
       } catch (e) {
@@ -289,7 +247,7 @@ class AppState extends ChangeNotifier {
   /// ขอรหัสผูกบัญชี LINE (6 ตัว) — คืน null ถ้ายังไม่ได้ตั้งค่าหรือทำไม่สำเร็จ
   Future<String?> createLineLinkCode() async {
     final u = user;
-    if (_fb == null || u == null) return null;
+    if (u == null) return null;
     try {
       return await _fb.createLineLinkCode(u.uid);
     } catch (_) {
@@ -299,7 +257,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> unlinkLine() async {
     final u = user;
-    if (_fb == null || u == null) return;
+    if (u == null) return;
     await _fb.unlinkLine(u.uid);
     user = u.copyWith(clearLine: true);
     notifyListeners();
@@ -309,7 +267,7 @@ class AppState extends ChangeNotifier {
   /// (การผูกเกิดขึ้นฝั่งเซิร์ฟเวอร์ตอนผู้ใช้พิมพ์รหัสในแชต แอปจึงต้องถามเอง)
   Future<bool> refreshUser() async {
     final u = user;
-    if (_fb == null || u == null) return false;
+    if (u == null) return false;
     final fresh = await _fb.fetchUser(u.uid);
     if (fresh == null) return false;
     user = fresh;
@@ -341,20 +299,8 @@ class AppState extends ChangeNotifier {
   }
 
   /// คืนค่า null = สำเร็จ, หรือข้อความ error (ภาษาไทย)
-  Future<String?> signIn(String email, String password) async {
-    email = email.trim().toLowerCase();
-    if (_fb != null) {
-      final err = await _fb.signIn(email, password);
-      return err;
-    }
-    // Demo
-    final acc = _demoAccounts[email];
-    if (acc == null) return 'ไม่พบบัญชีนี้ (ลอง admin@maejo.com)';
-    if (acc['password'] != password) return 'รหัสผ่านไม่ถูกต้อง';
-    user = acc['user'] as AppUser;
-    notifyListeners();
-    return null;
-  }
+  Future<String?> signIn(String email, String password) =>
+      _fb.signIn(email.trim().toLowerCase(), password);
 
   Future<String?> signUp({
     required String name,
@@ -365,101 +311,55 @@ class AppState extends ChangeNotifier {
     String? shopName,
     String? shopCategory,
   }) async {
-    email = email.trim().toLowerCase();
-    if (_fb != null) {
-      return _fb.signUp(
-        name: name, email: email, password: password, phone: phone,
-        role: role, shopName: shopName, shopCategory: shopCategory,
-      );
-    }
-    // Demo
-    if (_demoAccounts.containsKey(email)) return 'อีเมลนี้ถูกใช้แล้ว';
-    final newUser = AppUser(
-      uid: 'u-${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      email: email,
-      phone: phone,
-      role: role,
-      // สมัครแค่บัญชี — "รออนุมัติ" มาจากคำขอเปิดร้านที่ยื่นทีหลัง (หลังเชื่อม LINE)
-      status: 'active',
+    return _fb.signUp(
+      name: name, email: email.trim().toLowerCase(), password: password, phone: phone,
+      role: role, shopName: shopName, shopCategory: shopCategory,
     );
-    _demoAccounts[email] = {'password': password, 'user': newUser};
-    user = newUser;
-
-    // ผู้ขายที่สมัคร -> สร้างคำขอให้ admin อนุมัติ
-    if (role == UserRole.seller && shopName != null) {
-      requests = [
-        MarketRequest(
-          id: 'r-${DateTime.now().millisecondsSinceEpoch}',
-          type: RequestType.sellerApply,
-          title: shopName,
-          subtitle: 'สมัครเปิดร้าน · ${shopCategory ?? "ทั่วไป"}',
-          amount: '฿1,500/เดือน',
-          requesterName: name,
-        ),
-        ...requests,
-      ];
-    }
-    notifyListeners();
-    return null;
   }
 
   Future<void> signOut() async {
-    if (_fb != null) await _fb.signOut();
+    await _fb.signOut();
     user = null;
     guest = false;
     notifyListeners();
   }
 
   /// ส่งอีเมลรีเซ็ตรหัสผ่าน — คืน null = สำเร็จ
-  Future<String?> resetPassword(String email) async {
-    if (_fb != null) return _fb.resetPassword(email);
-    return 'ใช้ได้เมื่อเปิด Firebase';
-  }
+  Future<String?> resetPassword(String email) => _fb.resetPassword(email);
 
   /// เปลี่ยนรหัสผ่านของตัวเอง — คืน null = สำเร็จ
-  Future<String?> changePassword(String current, String newPass) async {
-    if (_fb != null) return _fb.changePassword(current, newPass);
-    return 'ใช้ได้เมื่อเปิด Firebase';
-  }
+  Future<String?> changePassword(String current, String newPass) =>
+      _fb.changePassword(current, newPass);
 
   // ---------------- USER MANAGEMENT (admin) ----------------
 
   List<AppUser> allUsers = [];
 
   Future<void> fetchAllUsers() async {
-    if (_fb != null) {
-      allUsers = await _fb.fetchUsers();
-      notifyListeners();
-    }
+    allUsers = await _fb.fetchUsers();
+    notifyListeners();
   }
 
   Future<void> setUserStatus(String uid, String status) async {
-    if (_fb != null) {
-      await _fb.setUserStatus(uid, status);
-      allUsers = await _fb.fetchUsers();
-      sellerCount = await _fb.fetchSellerCount();
-      notifyListeners();
-    }
+    await _fb.setUserStatus(uid, status);
+    allUsers = await _fb.fetchUsers();
+    sellerCount = await _fb.fetchSellerCount();
+    notifyListeners();
   }
 
   Future<void> setUserRole(String uid, String role) async {
-    if (_fb != null) {
-      await _fb.setUserRole(uid, role);
-      allUsers = await _fb.fetchUsers();
-      sellerCount = await _fb.fetchSellerCount();
-      notifyListeners();
-    }
+    await _fb.setUserRole(uid, role);
+    allUsers = await _fb.fetchUsers();
+    sellerCount = await _fb.fetchSellerCount();
+    notifyListeners();
   }
 
   /// แอดมินให้/ถอนหลายบทบาทกับผู้ใช้คนหนึ่ง
   Future<void> setUserRoles(String uid, List<UserRole> roles) async {
     if (roles.isEmpty) return;
-    if (_fb != null) {
-      await _fb.setUserRoles(uid, roles.map((r) => r.id).toList());
-      allUsers = await _fb.fetchUsers();
-      sellerCount = await _fb.fetchSellerCount();
-    }
+    await _fb.setUserRoles(uid, roles.map((r) => r.id).toList());
+    allUsers = await _fb.fetchUsers();
+    sellerCount = await _fb.fetchSellerCount();
     // ถ้าแก้บทบาทของตัวเอง ให้สถานะในแอปตรงกันทันที
     final u = user;
     if (u != null && u.uid == uid) {
@@ -476,9 +376,7 @@ class AppState extends ChangeNotifier {
     if (u == null || u.role == role || !u.can(role)) return;
     user = u.copyWith(role: role);
     notifyListeners();
-    if (_fb != null) {
-      await _fb.setActiveRole(u.uid, role.id);
-    }
+    await _fb.setActiveRole(u.uid, role.id);
     // ข้อมูลที่โหลดขึ้นกับบทบาท (ร้าน/สินค้า/ยอดขาย/จำนวนผู้ขาย) ต้องโหลดใหม่
     await _loadData();
     notifyListeners();
@@ -489,11 +387,9 @@ class AppState extends ChangeNotifier {
   Future<String?> updateShop(Map<String, dynamic> data) async {
     final shopId = myShop?.id;
     if (shopId == null) return 'ยังไม่มีร้าน';
-    if (_fb != null) {
-      await _fb.updateShop(shopId, data);
-      myShop = await _fb.fetchShop(shopId);
-      shops = await _fb.fetchShops();
-    }
+    await _fb.updateShop(shopId, data);
+    myShop = await _fb.fetchShop(shopId);
+    shops = await _fb.fetchShops();
     notifyListeners();
     return null;
   }
@@ -514,14 +410,8 @@ class AppState extends ChangeNotifier {
     if (!myShops.any((s) => s.id == shopId)) return;
     user = u.copyWith(shopId: shopId);
     notifyListeners();
-    if (_fb != null) {
-      await _fb.setSelectedShop(u.uid, shopId);
-      await _loadData();
-    } else {
-      myShop = myShops.firstWhere((s) => s.id == shopId);
-      products = [];
-      sales = [];
-    }
+    await _fb.setSelectedShop(u.uid, shopId);
+    await _loadData();
     notifyListeners();
   }
 
@@ -555,30 +445,15 @@ class AppState extends ChangeNotifier {
       return 'เชื่อมต่อ LINE ก่อนยื่นขอเปิดร้าน';
     }
 
-    if (_fb != null) {
-      await _fb.addSellerApply(
-        uid: u.uid,
-        shopName: shopName.trim(),
-        shopCategory: category,
-        description: description.trim(),
-        requesterName: ownerName.trim().isEmpty ? u.name : ownerName.trim(),
-        phone: phone.trim().isEmpty ? u.phone : phone.trim(),
-      );
-      requests = await _fb.fetchRequests();
-    } else {
-      requests = [
-        MarketRequest(
-          id: 'r-${DateTime.now().millisecondsSinceEpoch}',
-          type: RequestType.sellerApply,
-          title: shopName.trim(),
-          subtitle: 'สมัครเปิดร้าน · $category',
-          amount: '฿1,500/เดือน',
-          requesterName: u.name,
-          uid: u.uid,
-        ),
-        ...requests,
-      ];
-    }
+    await _fb.addSellerApply(
+      uid: u.uid,
+      shopName: shopName.trim(),
+      shopCategory: category,
+      description: description.trim(),
+      requesterName: ownerName.trim().isEmpty ? u.name : ownerName.trim(),
+      phone: phone.trim().isEmpty ? u.phone : phone.trim(),
+    );
+    requests = await _fb.fetchRequests();
     notifyListeners();
     return null;
   }
@@ -586,37 +461,27 @@ class AppState extends ChangeNotifier {
   // ---------------- APPROVALS ----------------
 
   Future<void> setRequestStatus(String id, String status) async {
-    if (_fb != null) {
-      if (status == 'approved') {
-        await _fb.approveRequest(id);
-      } else {
-        await _fb.rejectRequest(id);
-      }
-      // อนุมัติแล้วอาจสร้างร้าน/จัดแผงใหม่ — โหลดข้อมูลที่เกี่ยวข้องใหม่
-      requests = await _fb.fetchRequests();
-      shops = await _fb.fetchShops();
-      stalls = await _fb.fetchStalls();
-
-      // ถ้าอนุมัติคำขอของตัวเอง (เจ้าของตลาดที่ขายเองด้วย) ต้องรีเฟรชผู้ใช้ด้วย
-      // เพราะ approveRequest เขียน shopId ลง Firestore แต่ user ในหน่วยความจำ
-      // ถูกตั้งค่าจาก watchAuth เท่านั้น ซึ่งยิงตอน login/logout — ไม่งั้นร้านจะไม่ขึ้น
-      final me = user;
-      if (me != null) {
-        final fresh = await _fb.fetchUser(me.uid);
-        if (fresh != null) {
-          // เก็บบทบาทที่กำลังใช้อยู่ไว้ ไม่ให้เด้งกลับเป็นบทบาทหลัก
-          user = me.can(fresh.role) ? fresh : fresh.copyWith(role: me.role);
-          await _loadData();
-        }
-      }
+    if (status == 'approved') {
+      await _fb.approveRequest(id);
     } else {
-      requests = requests.map((r) {
-        if (r.id != id) return r;
-        return MarketRequest(
-          id: r.id, type: r.type, title: r.title, subtitle: r.subtitle,
-          amount: r.amount, requesterName: r.requesterName, status: status,
-        );
-      }).toList();
+      await _fb.rejectRequest(id);
+    }
+    // อนุมัติแล้วอาจสร้างร้าน/จัดแผงใหม่ — โหลดข้อมูลที่เกี่ยวข้องใหม่
+    requests = await _fb.fetchRequests();
+    shops = await _fb.fetchShops();
+    stalls = await _fb.fetchStalls();
+
+    // ถ้าอนุมัติคำขอของตัวเอง (เจ้าของตลาดที่ขายเองด้วย) ต้องรีเฟรชผู้ใช้ด้วย
+    // เพราะ approveRequest เขียน shopId ลง Firestore แต่ user ในหน่วยความจำ
+    // ถูกตั้งค่าจาก watchAuth เท่านั้น ซึ่งยิงตอน login/logout — ไม่งั้นร้านจะไม่ขึ้น
+    final me = user;
+    if (me != null) {
+      final fresh = await _fb.fetchUser(me.uid);
+      if (fresh != null) {
+        // เก็บบทบาทที่กำลังใช้อยู่ไว้ ไม่ให้เด้งกลับเป็นบทบาทหลัก
+        user = me.can(fresh.role) ? fresh : fresh.copyWith(role: me.role);
+        await _loadData();
+      }
     }
     notifyListeners();
   }
@@ -651,19 +516,8 @@ class AppState extends ChangeNotifier {
     if (s.id.trim().isEmpty) return 'ต้องมีรหัสแผง';
     if (isNew && stalls.any((x) => x.id == s.id)) return 'มีแผง ${s.id} อยู่แล้ว';
 
-    if (_fb != null) {
-      await _fb.upsertStall(s);
-      stalls = await _fb.fetchStalls();
-    } else {
-      final i = stalls.indexWhere((x) => x.id == s.id);
-      final next = [...stalls];
-      if (i >= 0) {
-        next[i] = s;
-      } else {
-        next.add(s);
-      }
-      stalls = next;
-    }
+    await _fb.upsertStall(s);
+    stalls = await _fb.fetchStalls();
     notifyListeners();
     return null;
   }
@@ -674,12 +528,8 @@ class AppState extends ChangeNotifier {
     if (target.isNotEmpty && !target.first.isEmpty) {
       return 'ลบไม่ได้ — แผงนี้มีผู้เช่าอยู่ ให้ย้ายหรือปิดร้านก่อน';
     }
-    if (_fb != null) {
-      await _fb.deleteStall(id);
-      stalls = await _fb.fetchStalls();
-    } else {
-      stalls = stalls.where((x) => x.id != id).toList();
-    }
+    await _fb.deleteStall(id);
+    stalls = await _fb.fetchStalls();
     notifyListeners();
     return null;
   }
@@ -687,35 +537,16 @@ class AppState extends ChangeNotifier {
   // ---------------- BOOKING ----------------
 
   Future<void> bookStall(String stallId, String shopName) async {
-    if (_fb != null) {
-      final stall = stalls.where((s) => s.id == stallId);
-      await _fb.addBooking(
-        stallId,
-        shopName,
-        user?.name ?? '',
-        uid: user?.uid ?? '',
-        shopId: myShop?.id ?? '',
-        pricePerDay: stall.isNotEmpty ? stall.first.pricePerDay : 150,
-      );
-      requests = await _fb.fetchRequests();
-      notifyListeners();
-      return;
-    }
-    // Demo — เพิ่มคำขอจองให้ admin อนุมัติ
-    requests = [
-      MarketRequest(
-        id: 'r-${DateTime.now().millisecondsSinceEpoch}',
-        type: RequestType.booking,
-        title: shopName.isEmpty ? (user?.name ?? 'ผู้ขาย') : shopName,
-        subtitle: 'ขอจองแผง $stallId',
-        amount: '฿${stalls.firstWhere(
-              (s) => s.id == stallId,
-              orElse: () => const Stall(id: '', zone: ''),
-            ).pricePerDay}/วัน',
-        requesterName: user?.name ?? '',
-      ),
-      ...requests,
-    ];
+    final stall = stalls.where((s) => s.id == stallId);
+    await _fb.addBooking(
+      stallId,
+      shopName,
+      user?.name ?? '',
+      uid: user?.uid ?? '',
+      shopId: myShop?.id ?? '',
+      pricePerDay: stall.isNotEmpty ? stall.first.pricePerDay : 150,
+    );
+    requests = await _fb.fetchRequests();
     notifyListeners();
   }
 
@@ -724,18 +555,11 @@ class AppState extends ChangeNotifier {
   Future<String?> addProduct(String name, double price, {String imageUrl = ''}) async {
     final shopId = myShop?.id;
     if (shopId == null) return 'ยังไม่มีร้าน — รอผู้ดูแลระบบอนุมัติก่อน';
-    if (_fb != null) {
-      try {
-        final p = await _fb.addProduct(shopId, name, price, imageUrl: imageUrl);
-        products = [p, ...products];
-      } catch (e) {
-        return 'เพิ่มสินค้าไม่สำเร็จ: $e';
-      }
-    } else {
-      products = [
-        Product(id: 'p-${DateTime.now().millisecondsSinceEpoch}', shopId: shopId, name: name, price: price, imageUrl: imageUrl),
-        ...products,
-      ];
+    try {
+      final p = await _fb.addProduct(shopId, name, price, imageUrl: imageUrl);
+      products = [p, ...products];
+    } catch (e) {
+      return 'เพิ่มสินค้าไม่สำเร็จ: $e';
     }
     notifyListeners();
     return null;
@@ -749,7 +573,7 @@ class AppState extends ChangeNotifier {
     required String imageUrl,
   }) async {
     final data = {'name': name, 'price': price, 'imageUrl': imageUrl};
-    if (_fb != null) await _fb.updateProduct(id, data);
+    await _fb.updateProduct(id, data);
     products = products
         .map((p) => p.id == id ? p.copyWith(name: name, price: price, imageUrl: imageUrl) : p)
         .toList();
@@ -760,39 +584,30 @@ class AppState extends ChangeNotifier {
   // ---------------- BANNERS (แอดมินจัดการแบนเนอร์หน้าแรก) ----------------
 
   Future<void> saveBanner(PromoBanner b) async {
-    if (_fb != null) {
-      if (b.id.isEmpty) {
-        final id = await _fb.addBanner(b);
-        banners = [...banners, PromoBanner.fromMap(id, b.toMap())];
-      } else {
-        await _fb.updateBanner(b.id, b.toMap());
-        banners = banners.map((x) => x.id == b.id ? b : x).toList();
-      }
+    if (b.id.isEmpty) {
+      final id = await _fb.addBanner(b);
+      banners = [...banners, PromoBanner.fromMap(id, b.toMap())];
     } else {
-      if (b.id.isEmpty) {
-        final id = 'bn-${DateTime.now().millisecondsSinceEpoch}';
-        banners = [...banners, PromoBanner.fromMap(id, b.toMap())];
-      } else {
-        banners = banners.map((x) => x.id == b.id ? b : x).toList();
-      }
+      await _fb.updateBanner(b.id, b.toMap());
+      banners = banners.map((x) => x.id == b.id ? b : x).toList();
     }
     notifyListeners();
   }
 
   Future<void> removeBanner(String id) async {
-    if (_fb != null) await _fb.deleteBanner(id);
+    await _fb.deleteBanner(id);
     banners = banners.where((b) => b.id != id).toList();
     notifyListeners();
   }
 
   Future<void> removeProduct(String id) async {
-    if (_fb != null) await _fb.deleteProduct(id);
+    await _fb.deleteProduct(id);
     products = products.where((p) => p.id != id).toList();
     notifyListeners();
   }
 
   Future<void> toggleProduct(String id, bool available) async {
-    if (_fb != null) await _fb.setProductAvailable(id, available);
+    await _fb.setProductAvailable(id, available);
     products = products
         .map((p) => p.id == id ? p.copyWith(available: available) : p)
         .toList();
@@ -800,15 +615,9 @@ class AppState extends ChangeNotifier {
   }
 
   /// ดึงสินค้าของร้านใดๆ (ใช้ในหน้ารายละเอียดร้านฝั่งผู้ซื้อ)
-  Future<List<Product>> fetchProductsFor(String shopId) async {
-    if (_fb != null) return _fb.fetchProducts(shopId);
-    return [];
-  }
+  Future<List<Product>> fetchProductsFor(String shopId) => _fb.fetchProducts(shopId);
 
   // ---------------- SALES (รายงานยอดขาย) ----------------
-
-  // เก็บยอดขายใน demo mode (ใช้ร่วมกันทั้งฝั่งผู้ขายและแอดมิน)
-  final List<Sale> _demoSales = [];
 
   /// ยอดขายวันนี้ของร้านที่ล็อกอิน
   double get todayRevenue =>
@@ -819,10 +628,9 @@ class AppState extends ChangeNotifier {
 
   Future<void> refreshSales() async {
     final shopId = myShop?.id;
-    if (_fb != null && shopId != null) {
-      sales = await _fb.fetchSales(shopId);
-      notifyListeners();
-    }
+    if (shopId == null) return;
+    sales = await _fb.fetchSales(shopId);
+    notifyListeners();
   }
 
   /// บันทึกการขาย 1 รายการ — คืน null = สำเร็จ, หรือข้อความ error
@@ -849,111 +657,48 @@ class AppState extends ChangeNotifier {
       note: note.trim(),
     );
 
-    if (_fb != null) {
-      final saved = await _fb.addSale(draft);
-      sales = [saved, ...sales];
-    } else {
-      final saved = Sale(
-        id: 's-${DateTime.now().millisecondsSinceEpoch}',
-        shopId: draft.shopId,
-        shopName: draft.shopName,
-        productId: draft.productId,
-        productName: draft.productName,
-        price: draft.price,
-        qty: draft.qty,
-        note: draft.note,
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-      );
-      _demoSales.insert(0, saved);
-      sales = [..._demoSales];
-    }
+    final saved = await _fb.addSale(draft);
+    sales = [saved, ...sales];
     notifyListeners();
     return null;
   }
 
   Future<void> deleteSale(String id) async {
-    if (_fb != null) {
-      await _fb.deleteSale(id);
-    } else {
-      _demoSales.removeWhere((s) => s.id == id);
-    }
+    await _fb.deleteSale(id);
     sales = sales.where((s) => s.id != id).toList();
     notifyListeners();
   }
 
   /// ยอดขายทุกร้าน (รายงานภาพรวมของแอดมิน)
-  Future<List<Sale>> fetchAllSales() async {
-    if (_fb != null) return _fb.fetchAllSales();
-    return [..._demoSales]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  }
+  Future<List<Sale>> fetchAllSales() => _fb.fetchAllSales();
 
   // ---------------- REVIEWS ----------------
 
-  // เก็บรีวิวใน demo mode (shopId -> รายการรีวิว)
-  final Map<String, List<Review>> _demoReviews = {};
-
-  Future<List<Review>> fetchReviewsFor(String shopId) async {
-    if (_fb != null) return _fb.fetchReviews(shopId);
-    final list = [...(_demoReviews[shopId] ?? const <Review>[])];
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
-  }
+  Future<List<Review>> fetchReviewsFor(String shopId) => _fb.fetchReviews(shopId);
 
   /// เพิ่ม/แก้รีวิวของผู้ใช้ปัจจุบัน — คืน null = สำเร็จ, หรือข้อความ error
   Future<String?> addReview(String shopId, int rating, String comment) async {
     final u = user;
     if (u == null) return 'กรุณาเข้าสู่ระบบก่อนรีวิว';
     if (rating < 1 || rating > 5) return 'กรุณาให้คะแนน 1–5 ดาว';
-    if (_fb != null) {
-      await _fb.addReview(shopId, u.uid, u.name, rating, comment.trim());
-      shops = await _fb.fetchShops(); // รีเฟรชค่าเฉลี่ยในการ์ดร้าน
-      if (myShop?.id == shopId) myShop = await _fb.fetchShop(shopId);
-    } else {
-      // Demo — เขียนทับรีวิวเดิมของ uid นี้ (1 รีวิว/คน/ร้าน)
-      final list = [...(_demoReviews[shopId] ?? const <Review>[])]
-        ..removeWhere((r) => r.uid == u.uid);
-      list.add(Review(
-        id: '${shopId}_${u.uid}',
-        shopId: shopId,
-        uid: u.uid,
-        authorName: u.name,
-        rating: rating,
-        comment: comment.trim(),
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-      ));
-      _demoReviews[shopId] = list;
-      _applyDemoRating(shopId, list);
-    }
+    await _fb.addReview(shopId, u.uid, u.name, rating, comment.trim());
+    shops = await _fb.fetchShops(); // รีเฟรชค่าเฉลี่ยในการ์ดร้าน
+    if (myShop?.id == shopId) myShop = await _fb.fetchShop(shopId);
     notifyListeners();
     return null;
   }
 
   Future<void> deleteReview(String reviewId, String shopId) async {
-    if (_fb != null) {
-      await _fb.deleteReview(reviewId, shopId);
-      shops = await _fb.fetchShops();
-      if (myShop?.id == shopId) myShop = await _fb.fetchShop(shopId);
-    } else {
-      final list = [...(_demoReviews[shopId] ?? const <Review>[])]
-        ..removeWhere((r) => r.id == reviewId);
-      _demoReviews[shopId] = list;
-      _applyDemoRating(shopId, list);
-    }
+    await _fb.deleteReview(reviewId, shopId);
+    shops = await _fb.fetchShops();
+    if (myShop?.id == shopId) myShop = await _fb.fetchShop(shopId);
     notifyListeners();
   }
 
   /// ดึงรีวิวทั้งหมด (หน้า moderation ของแอดมิน)
-  Future<List<Review>> fetchAllReviews() async {
-    if (_fb != null) return _fb.fetchAllReviews();
-    final all = _demoReviews.values.expand((e) => e).toList();
-    all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return all;
-  }
+  Future<List<Review>> fetchAllReviews() => _fb.fetchAllReviews();
 
   // ---------------- INSPECTIONS (ตรวจมาตรฐานร้าน) ----------------
-
-  /// ผลตรวจใน Demo Mode (ไม่มี Firestore ให้เขียน)
-  final List<Map<String, dynamic>> _demoInspections = [];
 
   /// บันทึกผลการตรวจมาตรฐานร้าน — คืน null = สำเร็จ
   Future<String?> saveInspection({
@@ -967,29 +712,15 @@ class AppState extends ChangeNotifier {
     if (scores.values.any((v) => v < 1)) return 'ให้คะแนนให้ครบทุกข้อก่อนบันทึก';
     final avg = scores.values.reduce((a, b) => a + b) / scores.length;
     try {
-      if (_fb != null) {
-        await _fb.saveInspection(
-          shopId: shopId,
-          shopName: shopName,
-          scores: scores,
-          avg: double.parse(avg.toStringAsFixed(2)),
-          note: note.trim(),
-          byUid: u.uid,
-          byName: u.name,
-        );
-      } else {
-        _demoInspections.insert(0, {
-          'id': 'ins-${DateTime.now().millisecondsSinceEpoch}',
-          'shopId': shopId,
-          'shopName': shopName,
-          'scores': scores,
-          'avg': double.parse(avg.toStringAsFixed(2)),
-          'note': note.trim(),
-          'byUid': u.uid,
-          'byName': u.name,
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
-        });
-      }
+      await _fb.saveInspection(
+        shopId: shopId,
+        shopName: shopName,
+        scores: scores,
+        avg: double.parse(avg.toStringAsFixed(2)),
+        note: note.trim(),
+        byUid: u.uid,
+        byName: u.name,
+      );
     } catch (e) {
       return 'บันทึกไม่สำเร็จ: $e';
     }
@@ -997,12 +728,8 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
-  Future<List<Map<String, dynamic>>> fetchInspections({String? shopId}) async {
-    if (_fb != null) return _fb.fetchInspections(shopId: shopId);
-    return shopId == null
-        ? [..._demoInspections]
-        : _demoInspections.where((e) => e['shopId'] == shopId).toList();
-  }
+  Future<List<Map<String, dynamic>>> fetchInspections({String? shopId}) =>
+      _fb.fetchInspections(shopId: shopId);
 
   // ---------------- FAVORITES (ร้านที่ติดตาม) ----------------
 
@@ -1023,24 +750,8 @@ class AppState extends ChangeNotifier {
     }
     user = u.copyWith(favorites: list);
     notifyListeners();
-    if (_fb != null) await _fb.toggleFavorite(u.uid, shopId, add);
+    await _fb.toggleFavorite(u.uid, shopId, add);
     return add;
-  }
-
-  /// อัปเดตค่าเฉลี่ยดาวลงในรายการ shops (เฉพาะ demo mode)
-  void _applyDemoRating(String shopId, List<Review> list) {
-    final count = list.length;
-    final avg = count == 0 ? 0.0 : list.map((r) => r.rating).reduce((a, b) => a + b) / count;
-    final rounded = double.parse(avg.toStringAsFixed(1));
-    shops = shops.map((s) {
-      if (s.id != shopId) return s;
-      return Shop(
-        id: s.id, name: s.name, category: s.category, ownerName: s.ownerName,
-        stallId: s.stallId, zone: s.zone, status: s.status, payStatus: s.payStatus,
-        rating: rounded, reviews: count, ownerUid: s.ownerUid,
-        description: s.description, hours: s.hours, imageUrl: s.imageUrl,
-      );
-    }).toList();
   }
 }
 

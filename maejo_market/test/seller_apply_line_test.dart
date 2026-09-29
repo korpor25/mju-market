@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maejo_market/app_config.dart';
-import 'package:maejo_market/data/demo_data.dart';
+import 'support/sample_data.dart';
 import 'package:maejo_market/models/app_user.dart';
 import 'package:maejo_market/screens/seller/seller_shell.dart';
 import 'package:maejo_market/state/app_state.dart';
@@ -21,8 +21,8 @@ void main() {
   );
 
   setUp(() {
-    appState.shops = DemoData.shops();
-    appState.stalls = DemoData.stalls();
+    appState.shops = SampleData.shops();
+    appState.stalls = SampleData.stalls();
     appState.requests = [];
     appState.ready = true;
   });

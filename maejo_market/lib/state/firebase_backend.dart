@@ -19,7 +19,7 @@ import '../models/sale.dart';
 import '../services/line_push.dart';
 import '../app_config.dart';
 
-/// เลเยอร์เชื่อมต่อ Firebase (ใช้เมื่อ AppConfig.useFirebase = true)
+/// เลเยอร์เชื่อมต่อ Firebase
 class FirebaseBackend {
   FirebaseAuth get _auth => FirebaseAuth.instance;
   FirebaseFirestore get _db => FirebaseFirestore.instance;

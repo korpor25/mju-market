@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../app_config.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/animations.dart';
@@ -214,13 +213,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     label: const Text('เข้าชมตลาดโดยไม่ต้องสมัคร'),
                                   ),
                                 ),
-                                if (!AppConfig.useFirebase) ...[
-                                  const SizedBox(height: 22),
-                                  _DemoHint(onFill: (e) {
-                                    _email.text = e;
-                                    _password.text = '123456';
-                                  }),
-                                ],
                               ]),
                             ),
                           ),
@@ -278,52 +270,6 @@ class _LoginButtonState extends State<_LoginButton> {
                   ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _DemoHint extends StatelessWidget {
-  final void Function(String email) onFill;
-  const _DemoHint({required this.onFill});
-
-  @override
-  Widget build(BuildContext context) {
-    Widget row(String label, String email) => InkWell(
-          onTap: () => onFill(email),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-            child: Row(children: [
-              Icon(Icons.touch_app_outlined, size: 16, color: AppColors.primary),
-              const SizedBox(width: 8),
-              Text('$label · ',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
-              Expanded(
-                child: Text(email, style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
-              ),
-            ]),
-          ),
-        );
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      decoration: BoxDecoration(
-        color: AppColors.leafSoft,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('🧪 บัญชีทดลอง (Demo Mode) · รหัส 123456',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-          const SizedBox(height: 6),
-          row('ผู้ดูแลระบบ', 'admin@maejo.com'),
-          row('ผู้ขาย', 'seller@maejo.com'),
-          row('ผู้บริโภค', 'buyer@maejo.com'),
-          const SizedBox(height: 2),
-          Text('แตะเพื่อกรอกอัตโนมัติ', style: TextStyle(color: AppColors.faint, fontSize: 11)),
-        ],
       ),
     );
   }

@@ -266,7 +266,7 @@ class MarketLayout {
     return Rect.fromLTRB(l, t, r, b);
   }
 
-  /// หมวดสินค้าของแอป (DemoData.categories) ที่ตรงกับย่านนี้มากที่สุด
+  /// หมวดสินค้าของแอป (shopCategories) ที่ตรงกับย่านนี้มากที่สุด
   /// ใช้ตอนสร้างแผงตามผัง เพื่อให้ตัวกรองหมวดในหน้าอื่นยังใช้ได้
   static String appCategoryOf(String sectionId) {
     switch (sectionId) {

@@ -2,7 +2,7 @@ import 'payment_screen.dart';
 import '../../app_config.dart';
 import '../../models/app_user.dart';
 import 'package:flutter/material.dart';
-import '../../data/demo_data.dart';
+import '../../data/shop_categories.dart';
 import '../../models/product.dart';
 import '../../models/shop.dart';
 import '../../models/stall.dart';
@@ -653,7 +653,7 @@ Future<void> showApplyForShopDialog(BuildContext context) async {
   final descC = TextEditingController();
   final ownerC = TextEditingController(text: u?.name ?? '');
   final phoneC = TextEditingController(text: u?.phone ?? '');
-  String category = DemoData.categories.first;
+  String category = shopCategories.first;
   bool accepted = false;
 
   final ok = await showModalBottomSheet<bool>(
@@ -791,7 +791,7 @@ Future<void> showApplyForShopDialog(BuildContext context) async {
                           labelText: 'หมวดสินค้า *',
                           prefixIcon: Icon(Icons.sell_outlined),
                         ),
-                        items: DemoData.categories
+                        items: shopCategories
                             .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                             .toList(),
                         onChanged: (v) => setSheet(() => category = v ?? category),

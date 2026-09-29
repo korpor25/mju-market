@@ -1,6 +1,6 @@
 import '../../widgets/image_field.dart';
 import 'package:flutter/material.dart';
-import '../../data/demo_data.dart';
+import '../../data/shop_categories.dart';
 import '../../models/shop.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
@@ -25,7 +25,7 @@ class _ShopEditScreenState extends State<ShopEditScreen> {
   bool _busy = false;
 
   String? _initialCategory() {
-    return DemoData.categories.contains(widget.shop.category) ? widget.shop.category : null;
+    return shopCategories.contains(widget.shop.category) ? widget.shop.category : null;
   }
 
   @override
@@ -90,7 +90,7 @@ class _ShopEditScreenState extends State<ShopEditScreen> {
               DropdownButtonFormField<String>(
                 initialValue: _category,
                 decoration: InputDecoration(prefixIcon: Icon(Icons.sell_outlined), hintText: 'เลือกประเภท'),
-                items: DemoData.categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                items: shopCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                 onChanged: (v) => setState(() => _category = v),
               ),
               SizedBox(height: 14),

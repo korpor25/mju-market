@@ -5,7 +5,7 @@ class Stall {
   final String status; // occupied / empty / due / closed
   final String? shopName;
 
-  /// หมวดสินค้าประจำแผง — ใช้ค่าชุดเดียวกับ DemoData.categories
+  /// หมวดสินค้าประจำแผง — ใช้ค่าชุดเดียวกับ shopCategories
   /// ค่าว่าง = ยังไม่กำหนดหมวด
   final String category;
 

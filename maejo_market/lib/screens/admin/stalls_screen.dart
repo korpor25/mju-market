@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/demo_data.dart';
+import '../../data/shop_categories.dart';
 import '../../data/market_layout.dart';
 import '../../models/stall.dart';
 import '../../state/app_state.dart';
@@ -312,13 +312,13 @@ class _StallsScreenState extends State<StallsScreen> {
                 ]),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  initialValue: DemoData.categories.contains(category) ? category : null,
+                  initialValue: shopCategories.contains(category) ? category : null,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.sell_outlined),
                     hintText: 'หมวดสินค้าประจำแผง',
                   ),
-                  items: DemoData.categories
+                  items: shopCategories
                       .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                       .toList(),
                   onChanged: (v) => setSheet(() => category = v ?? ''),

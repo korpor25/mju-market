@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:maejo_market/data/demo_data.dart';
+import 'support/sample_data.dart';
 import 'package:maejo_market/models/app_user.dart';
 import 'package:maejo_market/models/shop.dart';
 import 'package:maejo_market/screens/seller/payment_screen.dart';
@@ -24,9 +24,9 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    appState.shops = [myShop, ...DemoData.shops()];
-    appState.stalls = DemoData.stalls();
-    appState.banners = DemoData.banners();
+    appState.shops = [myShop, ...SampleData.shops()];
+    appState.stalls = SampleData.stalls();
+    appState.banners = SampleData.banners();
     appState.ready = true;
     appState.guest = false;
     appState.myShops = [myShop];

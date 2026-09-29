@@ -1,10 +1,10 @@
 {
-  "name": "maejo-seed",
+  "name": "maejo-firestore-tools",
   "version": "1.0.0",
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "seed": "node seed.js",
+    "wipe": "node wipe.js",
     "migrate-roles": "node migrate-roles.js"
   },
   "dependencies": {
